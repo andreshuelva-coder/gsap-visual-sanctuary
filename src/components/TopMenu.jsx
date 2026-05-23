@@ -196,10 +196,15 @@ export default function TopMenu() {
               <Sparkles size={20} className="animate-pulse" />
             </div>
             <div>
-              <span className="font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-cyan-400 to-emerald-400 tracking-tight text-md md:text-lg">
-                GSAP VIBE-SANCTUARY
-              </span>
-              <span className="block text-[9px] text-slate-500 font-mono tracking-widest leading-none">V3+ AI-READY</span>
+              <div className="flex items-center gap-1.5">
+                <span className="font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-cyan-400 to-emerald-400 tracking-tight text-md md:text-lg">
+                  GSAP VIBE-SANCTUARY
+                </span>
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-950/40 border border-cyan-800/30 text-cyan-300 font-mono font-bold tracking-wider uppercase leading-none">
+                  BY ANTIGRAVITY
+                </span>
+              </div>
+              <span className="block text-[9px] text-slate-500 font-mono tracking-widest leading-none">V3+ AI-READY CREATOR SYSTEM</span>
             </div>
           </div>
 
