@@ -3706,119 +3706,158 @@ gsap.to(trackElement, {
 
 // --- 8.8. Temporal Scroll (Transición interactiva de eras antes/después) ---
 export function TemporalScrollDemo() {
-  const [era, setEra] = useState(1);
-  const [duration, setDuration] = useState(0.8);
+  const [zValue, setZValue] = useState(-200); // starts at Present (-200px)
+  const [sensitivity, setSensitivity] = useState(1.5);
+  const [perspective, setPerspective] = useState(1000);
   const [triggerCount, setTriggerCount] = useState(0);
 
-  const pastRef = useRef(null);
-  const presentRef = useRef(null);
-  const futureRef = useRef(null);
-  const indicatorRef = useRef(null);
-  const prevEraRef = useRef(1);
-  const transitioningRef = useRef(false);
+  const containerRef = useRef(null);
+  const cardRef = useRef(null);
 
   useEffect(() => {
-    const past = pastRef.current;
-    const present = presentRef.current;
-    const future = futureRef.current;
-    const indicator = indicatorRef.current;
-    if (!past || !present || !future || !indicator) return;
+    const container = containerRef.current;
+    if (!container) return;
 
-    const prevEra = prevEraRef.current;
-    prevEraRef.current = era; // update for next cycle
+    const handleWheel = (e) => {
+      // INTERCEPT and PREVENT default vertical scroll of the webpage!
+      e.preventDefault();
 
-    const tl = gsap.timeline({ defaults: { duration: duration, ease: "power2.out" } });
+      setZValue(prev => {
+        // Scroll UP (deltaY < 0) -> moves card CLOSER (positive Z value)
+        // Scroll DOWN (deltaY > 0) -> moves card FURTHER AWAY (negative Z value)
+        const next = prev - e.deltaY * (sensitivity / 2);
+        return Math.max(-800, Math.min(next, 300));
+      });
+    };
 
-    gsap.to(indicator, {
-      xPercent: era * 100,
-      backgroundColor: era === 0 ? "#10b981" : era === 1 ? "#3b82f6" : "#ec4899",
-      duration: duration
+    // Passive: false is CRITICAL to allow preventDefault() on wheel event in Chrome/Firefox
+    container.addEventListener("wheel", handleWheel, { passive: false });
+
+    return () => {
+      container.removeEventListener("wheel", handleWheel);
+    };
+  }, [sensitivity]);
+
+  useEffect(() => {
+    const card = cardRef.current;
+    if (!card) return;
+
+    // Smoothly animate the card's Z translation using GSAP
+    gsap.to(card, {
+      z: zValue,
+      duration: 0.5,
+      ease: "power2.out",
+      overwrite: "auto"
     });
+  }, [zValue]);
 
-    const isForward = era > prevEra;
-    const refs = [pastRef, presentRef, futureRef];
+  // Interactive 3D tilt parallax
+  const onMouseMove = (e) => {
+    const container = containerRef.current;
+    const card = cardRef.current;
+    if (!container || !card) return;
 
-    refs.forEach((ref, index) => {
-      const el = ref.current;
-      if (!el) return;
+    const rect = container.getBoundingClientRect();
+    const x = e.clientX - rect.left - rect.width / 2;
+    const y = e.clientY - rect.top - rect.height / 2;
 
-      if (index === era) {
-        // Incoming element: zooms towards the viewer
-        if (era !== prevEra) {
-          const startScale = isForward ? 0.1 : 2.5;
-          const startBlur = isForward ? "blur(12px)" : "blur(4px)";
-
-          gsap.killTweensOf(el);
-          tl.fromTo(el,
-            { scale: startScale, opacity: 0, filter: startBlur, zIndex: 20 },
-            { scale: 1, opacity: 1, filter: "blur(0px)", pointerEvents: "auto" },
-            0
-          );
-        } else {
-          gsap.killTweensOf(el);
-          gsap.set(el, { scale: 1, opacity: 1, filter: "blur(0px)", zIndex: 20, pointerEvents: "auto" });
-        }
-      } else if (index === prevEra && era !== prevEra) {
-        // Outgoing element: zoom out or shrink away
-        const endScale = isForward ? 2.5 : 0.1;
-        const endBlur = isForward ? "blur(4px)" : "blur(12px)";
-
-        gsap.killTweensOf(el);
-        tl.to(el,
-          { scale: endScale, opacity: 0, filter: endBlur, zIndex: 10, pointerEvents: "none" },
-          0
-        );
-      } else {
-        gsap.killTweensOf(el);
-        gsap.set(el, { opacity: 0, pointerEvents: "none", zIndex: 10 });
-      }
+    gsap.to(card, {
+      rotationY: x * 0.08,
+      rotationX: -y * 0.08,
+      duration: 0.5,
+      ease: "power2.out",
+      overwrite: "auto"
     });
-  }, [era, duration, triggerCount]);
-
-  const changeEra = (target) => {
-    if (transitioningRef.current || target === era) return;
-    transitioningRef.current = true;
-    setEra(target);
-    setTimeout(() => {
-      transitioningRef.current = false;
-    }, duration * 1000 + 50);
   };
 
-  const onWheel = (e) => {
-    if (e.deltaY > 30) {
-      const next = Math.min(era + 1, 2);
-      changeEra(next);
-    } else if (e.deltaY < -30) {
-      const prev = Math.max(era - 1, 0);
-      changeEra(prev);
+  const onMouseLeave = () => {
+    const card = cardRef.current;
+    if (!card) return;
+
+    // Reset tilt on exit
+    gsap.to(card, {
+      rotationX: 0,
+      rotationY: 0,
+      duration: 0.8,
+      ease: "power2.out",
+      overwrite: "auto"
+    });
+  };
+
+  const getEraData = (z) => {
+    if (z < -350) {
+      return {
+        id: 0,
+        title: "[ PASADO - AÑO 1990 ]",
+        headline: "📟 CRT PIXELS",
+        description: "Terminal de comandos en fósforo verde. Estilo retro, baja resolución y scanlines.",
+        colorClass: "text-emerald-400 border-emerald-500/40 bg-emerald-950/20 shadow-[0_0_20px_rgba(16,185,129,0.15)]",
+        themeGlow: "rgba(16, 185, 129, 0.2)"
+      };
     }
+    if (z < 50) {
+      return {
+        id: 1,
+        title: "PRESENTE - AÑO 2010",
+        headline: "🌐 WEB GRID",
+        description: "Diseño estructurado y reticular. Mayor resolución, tipografía limpia y minimalista.",
+        colorClass: "text-blue-400 border-blue-500/40 bg-blue-950/10 shadow-[0_0_20px_rgba(59,130,246,0.15)]",
+        themeGlow: "rgba(59, 130, 246, 0.2)"
+      };
+    }
+    return {
+      id: 2,
+      title: "✦ FUTURO - AÑO 2026 ✦",
+      headline: "🌌 CYBER PUNK",
+      description: "Composición holística 3D, neon glow, interfaces líquidas e IA omnipresente.",
+      colorClass: "text-pink-400 border-pink-500/40 bg-pink-950/20 shadow-[0_0_25px_rgba(236,72,153,0.25)]",
+      themeGlow: "rgba(236, 72, 153, 0.3)"
+    };
   };
 
-  const code = `// Scroll Temporal (Viaje en el Tiempo 3D en el Eje Z)
-// era: 0 (Pasado), 1 (Presente), 2 (Futuro)
-// prevEra: era anterior para calcular la dirección del tiempo (adelante/atrás)
-const isForward = era > prevEra;
+  const currentEra = getEraData(zValue);
 
-const tl = gsap.timeline({ defaults: { duration: ${duration}, ease: "power2.out" } });
+  const code = `// Viaje Temporal en Profundidad 3D (Eje Z) con Intercepción de Rueda
+// Para anular el scroll de la página, registramos el listener con passive: false
+useEffect(() => {
+  const container = containerRef.current;
+  
+  const handleWheel = (e) => {
+    e.preventDefault(); // Detiene el scroll vertical de la página entera
+    setZValue(prev => {
+      const next = prev - e.deltaY * (sensitivity / 2);
+      return Math.max(-800, Math.min(next, 300)); // límites Z
+    });
+  };
 
-// Diapositiva que ENTRA (Incoming)
-const startScale = isForward ? 0.1 : 2.5; // Viene del fondo o del frente
-const startBlur = isForward ? "blur(12px)" : "blur(4px)";
+  container.addEventListener("wheel", handleWheel, { passive: false });
+  return () => container.removeEventListener("wheel", handleWheel);
+}, [sensitivity]);
 
-tl.fromTo(incomingCard, 
-  { scale: startScale, opacity: 0, filter: startBlur, zIndex: 20 },
-  { scale: 1, opacity: 1, filter: "blur(0px)" },
-  0
-);
+// Animación de Profundidad en el eje Z usando GSAP
+useEffect(() => {
+  gsap.to(cardElement, {
+    z: zValue, // translateZ de CSS 3D
+    duration: 0.5,
+    ease: "power2.out",
+    overwrite: "auto"
+  });
+}, [zValue]);
 
-// Diapositiva que SALE (Outgoing)
-const endScale = isForward ? 2.5 : 0.1; // Se acerca a la cámara o se aleja al fondo
-const endBlur = isForward ? "blur(4px)" : "blur(12px)";
+// Parallax 3D interactivo en el eje X/Y (Tilt)
+const onMouseMove = (e) => {
+  const rect = container.getBoundingClientRect();
+  const x = e.clientX - rect.left - rect.width / 2;
+  const y = e.clientY - rect.top - rect.height / 2;
 
-tl.to(outgoingCard,
-  { scale: endScale, opacity: 0, filter: endBlur, zIndex: 10 },
-  0
-);`;
+  gsap.to(cardElement, {
+    rotationY: x * 0.08,
+    rotationX: -y * 0.08,
+    duration: 0.5,
+    ease: "power2.out",
+    overwrite: "auto"
+  });
+};`;
 
   return (
     <AnimationCard
@@ -3826,122 +3865,76 @@ tl.to(outgoingCard,
       titleEs="Temporal Scroll (Antes/Después)"
       titleEn="Time-Travel State Morphing"
       prompt="Crea un panel de viaje temporal en GSAP que permita transicionar de forma fluida entre tres estados (Pasado, Presente y Futuro) animando la profundidad de la figura (eje Z / scale) hacia delante o hacia atrás según la dirección del scroll."
-      onRestart={() => setEra(1)}
+      onRestart={() => setZValue(-200)}
       codeString={code}
       technicalInfo={{
-        tweenMethods: "gsap.timeline() coordinando desvanecimientos cruzados, desenfoques y transformaciones en profundidad (scale).",
-        varsObject: "opacity, scale, filter: 'blur()', xPercent, backgroundColor, duration.",
-        specialProps: "isForward calcula si avanzamos o retrocedemos en el tiempo para definir si las figuras vuelan hacia la pantalla (scale > 1) o se alejan al fondo (scale < 1).",
-        aliases: "Scale simulando posición Z tridimensional en el canvas de composición.",
-        easingConcept: "power2.out para un movimiento fluido y cinemático de los elementos en el túnel temporal.",
-        callbacksConcept: "Intercepción de rueda del ratón (onWheel) acoplada a un bloqueador de frecuencia (throttle).",
-        pluginsAssociated: "No requiere plugins especiales. Funciona enteramente sobre el core principal de GSAP."
+        tweenMethods: "gsap.to() animando las propiedades de profundidad en el eje Z (translateZ).",
+        varsObject: "z (profundidad tridimensional), rotationX/rotationY (inclinación lateral), duration, ease.",
+        specialProps: "El evento wheel es interceptado con passive: false para cancelar el scroll de la página y traducir deltaY a profundidad de eje Z.",
+        aliases: "z mapea directamente a translate3d(0,0,z) en CSS transform para aceleración por hardware.",
+        easingConcept: "power2.out suaviza la interpolación de profundidad para un desplazamiento cinemático.",
+        callbacksConcept: "Manejador de mousemove calcula el offset de inclinación 3D (tilt) con respecto al centro.",
+        pluginsAssociated: "No requiere plugins adicionales. Funciona en el Core principal de GSAP."
       }}
       sandboxChildren={
         <div 
-          onWheel={onWheel}
-          className="w-full flex flex-col justify-center items-center py-6 bg-slate-950/20 border border-slate-900 rounded-xl relative overflow-hidden h-64 select-none cursor-ns-resize"
+          ref={containerRef}
+          onMouseMove={onMouseMove}
+          onMouseLeave={onMouseLeave}
+          className="w-full flex flex-col justify-center items-center py-6 bg-slate-950/20 border border-slate-900 rounded-xl relative overflow-hidden h-72 select-none cursor-ns-resize"
+          style={{ perspective: `${perspective}px` }}
         >
-          <div className="absolute top-4 left-4 text-[10px] font-mono text-slate-500 z-10">
-            Rueda del ratón arriba/abajo para ir hacia DELANTE o ATRÁS en el tiempo
+          <div className="absolute top-4 left-4 text-[10px] font-mono text-slate-500 z-10 flex gap-4">
+            <span>Rueda del ratón para alejar/acercar en Z (anula scroll de página)</span>
+            <span className="text-purple-400 font-bold">Z-Depth: {Math.round(zValue)}px</span>
           </div>
 
-          <div className="relative w-72 h-40 rounded-xl overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center">
+          <div 
+            ref={cardRef}
+            className={`w-72 h-44 rounded-xl border p-6 flex flex-col justify-between items-center text-center backdrop-blur-md transition-colors duration-300 ${currentEra.colorClass}`}
+            style={{ 
+              transformStyle: "preserve-3d",
+              willChange: "transform",
+              boxShadow: `0 10px 30px -10px ${currentEra.themeGlow}`
+            }}
+          >
+            <div className="text-[10px] uppercase tracking-widest font-mono select-none" style={{ transform: "translateZ(30px)" }}>
+              {currentEra.title}
+            </div>
             
-            {/* ERA 0: PASADO (1990) */}
-            <div 
-              ref={pastRef}
-              className="absolute inset-0 bg-emerald-950/30 border border-emerald-500/20 p-6 flex flex-col justify-between items-center text-center font-mono"
-              style={{ willChange: "transform, opacity, filter" }}
-            >
-              <div className="text-[10px] text-emerald-400 border border-emerald-500/40 px-2 py-0.5 rounded bg-emerald-950/60 uppercase tracking-widest animate-pulse">
-                [ PASADO - AÑO 1990 ]
-              </div>
-              <div className="text-3xl text-emerald-400 font-bold tracking-tight uppercase select-none">
-                📟 CRT PIXELS
-              </div>
-              <p className="text-[10px] text-emerald-500 max-w-[200px] leading-tight">
-                Terminal de comandos en fósforo verde. Estilo retro, baja resolución y scanlines.
-              </p>
+            <div className="text-3xl font-black tracking-tight uppercase select-none font-sans" style={{ transform: "translateZ(50px)" }}>
+              {currentEra.headline}
             </div>
-
-            {/* ERA 1: PRESENTE (2010) */}
-            <div 
-              ref={presentRef}
-              className="absolute inset-0 bg-blue-950/20 border border-blue-500/20 p-6 flex flex-col justify-between items-center text-center font-sans"
-              style={{ willChange: "transform, opacity, filter" }}
-            >
-              <div className="text-[10px] text-blue-400 border border-blue-500/40 px-2 py-0.5 rounded bg-blue-950/60 uppercase tracking-widest">
-                PRESENTE - AÑO 2010
-              </div>
-              <div className="text-3xl text-blue-400 font-extrabold tracking-tight uppercase select-none">
-                🌐 WEB GRID
-              </div>
-              <p className="text-[10px] text-blue-300 max-w-[200px] leading-tight">
-                Diseño estructurado y reticular. Mayor resolución, tipografía limpia y minimalista.
-              </p>
-            </div>
-
-            {/* ERA 2: FUTURO (2026) */}
-            <div 
-              ref={futureRef}
-              className="absolute inset-0 bg-gradient-to-br from-pink-950/40 via-slate-950 to-purple-950/40 border border-pink-500/20 p-6 flex flex-col justify-between items-center text-center font-sans"
-              style={{ willChange: "transform, opacity, filter" }}
-            >
-              <div className="text-[10px] text-pink-400 border border-pink-500/40 px-2 py-0.5 rounded bg-pink-950/60 uppercase tracking-widest font-mono">
-                ✦ FUTURO - AÑO 2026 ✦
-              </div>
-              <div className="text-3xl text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400 font-black tracking-wider uppercase select-none drop-shadow-[0_0_10px_rgba(236,72,153,0.3)]">
-                🌌 CYBER PUNK
-              </div>
-              <p className="text-[10px] text-pink-200/80 max-w-[200px] leading-tight font-mono">
-                Composición holística 3D, neon glow, interfaces líquidas e IA omnipresente.
-              </p>
-            </div>
-
+            
+            <p className="text-[10px] leading-tight select-none opacity-80" style={{ transform: "translateZ(20px)" }}>
+              {currentEra.description}
+            </p>
           </div>
 
-          <div className="mt-4 flex bg-slate-900/60 border border-slate-800 rounded-lg p-1 relative w-64 overflow-hidden h-8">
+          <div className="absolute right-6 top-1/2 -translate-y-1/2 h-40 w-1.5 bg-slate-900 rounded-full overflow-hidden flex flex-col justify-between p-0.5">
             <div 
-              ref={indicatorRef}
-              className="absolute top-1 bottom-1 left-1 w-[80px] rounded bg-purple-500 z-0"
-              style={{ willChange: "transform, background-color" }}
+              className="w-full rounded-full transition-all duration-100"
+              style={{
+                height: "12px",
+                backgroundColor: currentEra.id === 0 ? "#10b981" : currentEra.id === 1 ? "#3b82f6" : "#ec4899",
+                transform: `translateY(${(1 - (zValue + 800) / 1100) * 140}px)`
+              }}
             />
-            <button 
-              onClick={() => changeEra(0)}
-              className={`flex-1 text-[9px] font-mono font-bold z-10 transition-colors uppercase ${era === 0 ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}
-            >
-              1990
-            </button>
-            <button 
-              onClick={() => changeEra(1)}
-              className={`flex-1 text-[9px] font-mono font-bold z-10 transition-colors uppercase ${era === 1 ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}
-            >
-              2010
-            </button>
-            <button 
-              onClick={() => changeEra(2)}
-              className={`flex-1 text-[9px] font-mono font-bold z-10 transition-colors uppercase ${era === 2 ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}
-            >
-              2026
-            </button>
           </div>
         </div>
       }
       controlsChildren={
         <>
-          <Slider label="Control Temporal (Era)" min={0} max={2} step={1} value={era} onChange={changeEra} />
-          <Slider label="Duración Viaje Temporal" min={0.3} max={1.8} step={0.1} value={duration} onChange={setDuration} suffix="s" />
+          <Slider label="Posición Z Manual" min={-800} max={300} step={10} value={zValue} onChange={setZValue} suffix="px" />
+          <Slider label="Sensibilidad Rueda" min={0.5} max={3.0} step={0.1} value={sensitivity} onChange={setSensitivity} suffix="x" />
+          <Slider label="Perspectiva de la Cámara" min={600} max={1600} step={100} value={perspective} onChange={setPerspective} suffix="px" />
           <div className="flex justify-between mt-2 text-[10px] text-slate-500 font-mono">
-            <span>PASADO</span>
-            <span>PRESENTE</span>
-            <span>FUTURO</span>
+            <span>PASADO (Z=-800)</span>
+            <span>PRESENTE (Z=-200)</span>
+            <span>FUTURO (Z=300)</span>
           </div>
         </>
       }
     />
   );
 }
-
-
-
