@@ -23,7 +23,12 @@ import {
   MorphSvgDemo,
   MotionPathDemo,
   PhysicsInertiaDemo,
-  GsapUtilsDemo
+  GsapUtilsDemo,
+  FlipLayoutDemo,
+  ScrollToDemo,
+  DrawSvgDemo,
+  InertiaDragDemo,
+  ThreeWebGLDemo
 } from './components/animations/AllAnimations';
 import { Sparkles, Terminal, Code2 } from 'lucide-react';
 
@@ -138,6 +143,17 @@ export default function App() {
           <MotionPathDemo />
           <PhysicsInertiaDemo />
           <GsapUtilsDemo />
+
+          {/* CATEGORY 7: MÓDULOS AVANZADOS */}
+          <div className="border-l-2 border-purple-400 pl-4 py-1 pt-12 mb-8">
+            <h2 className="text-xs font-bold text-purple-400 font-mono tracking-widest uppercase">Categoría 07 / MÓDULOS AVANZADOS (Efectos Premium y WebGL)</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Flip Layouts, ScrollToPlugin, trazados vectoriales, inercia dinámica y Three.js WebGL</p>
+          </div>
+          <FlipLayoutDemo />
+          <ScrollToDemo />
+          <DrawSvgDemo />
+          <InertiaDragDemo />
+          <ThreeWebGLDemo />
 
         </div>
       </main>

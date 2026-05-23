@@ -6,10 +6,12 @@ import { Draggable } from 'gsap/Draggable';
 import { MotionPathPlugin } from 'gsap/MotionPathPlugin';
 import { TextPlugin } from 'gsap/TextPlugin';
 import { Observer } from 'gsap/Observer';
+import { ScrollToPlugin } from 'gsap/ScrollToPlugin';
+import * as THREE from 'three';
 import AnimationCard from '../AnimationCard';
-import { Play, Pause, RotateCcw, ArrowRight, MousePointer, Move } from 'lucide-react';
+import { Play, Pause, RotateCcw, ArrowRight, MousePointer, Move, RefreshCw } from 'lucide-react';
 
-gsap.registerPlugin(ScrollTrigger, Draggable, MotionPathPlugin, TextPlugin, Observer);
+gsap.registerPlugin(ScrollTrigger, Draggable, MotionPathPlugin, TextPlugin, Observer, ScrollToPlugin);
 
 // Helper styles for standard UI controls
 const Slider = ({ label, min, max, step = 1, value, onChange, suffix = "" }) => (
@@ -1908,3 +1910,707 @@ const scale = gsap.utils.mapRange(0, 100, 0.2, 1.8, ${val}); // Devuelve: ${mapp
     />
   );
 }
+
+
+// =========================================================================
+// 7. MÓDULOS AVANZADOS (Efectos Premium y WebGL)
+// =========================================================================
+
+// --- 7.1. Flip Layout Transition ---
+export function FlipLayoutDemo() {
+  const [expandedId, setExpandedId] = useState(null);
+  const containerRef = useRef(null);
+  const cardRectsRef = useRef({});
+
+  const cardData = [
+    { id: '1', title: 'Diseño UX', color: 'from-purple-600/80 to-indigo-800/80', text: 'Planificación de interfaces de usuario interactivas basadas en cuadrículas asimétricas.' },
+    { id: '2', title: 'GSAP Core', color: 'from-cyan-600/80 to-blue-800/80', text: 'Interpolaciones fluidas aceleradas por hardware en el lienzo del DOM.' },
+    { id: '3', title: 'WebGL 3D', color: 'from-emerald-600/80 to-teal-800/80', text: 'Renderizado tridimensional acelerado en GPU mediante WebGL y Three.js.' },
+    { id: '4', title: 'Físicas', color: 'from-rose-600/80 to-pink-800/80', text: 'Fricción, gravedad simulada, colisiones y rebotes dinámicos.' }
+  ];
+
+  const handleToggle = (id) => {
+    if (!containerRef.current) return;
+
+    // 1. FIRST: Guardar la posición inicial de todas las tarjetas antes del render
+    const cards = containerRef.current.querySelectorAll('.flip-card');
+    cards.forEach(card => {
+      const cardId = card.getAttribute('data-id');
+      cardRectsRef.current[cardId] = card.getBoundingClientRect();
+    });
+
+    setExpandedId(prev => (prev === id ? null : id));
+  };
+
+  useGSAP(() => {
+    if (!containerRef.current) return;
+    const cards = containerRef.current.querySelectorAll('.flip-card');
+
+    cards.forEach(card => {
+      const cardId = card.getAttribute('data-id');
+      const firstRect = cardRectsRef.current[cardId];
+      if (!firstRect) return;
+
+      // 2. LAST: Obtener la posición final después de que React re-renderizó el layout
+      const lastRect = card.getBoundingClientRect();
+
+      // 3. INVERT: Calcular diferencia de escala y traslación
+      const dx = firstRect.left - lastRect.left;
+      const dy = firstRect.top - lastRect.top;
+      const dw = firstRect.width / lastRect.width;
+      const dh = firstRect.height / lastRect.height;
+
+      if (dx === 0 && dy === 0 && dw === 1 && dh === 1) return;
+
+      // Aplicar el estado invertido inmediatamente sin transición
+      gsap.set(card, {
+        x: dx,
+        y: dy,
+        scaleX: dw,
+        scaleY: dh,
+        transformOrigin: "top left"
+      });
+
+      // 4. PLAY: Animar suavemente de vuelta a su posición física natural (escala 1, traslación 0)
+      gsap.to(card, {
+        x: 0,
+        y: 0,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 0.6,
+        ease: "power2.out",
+        clearProps: "transform"
+      });
+    });
+  }, { dependencies: [expandedId], scope: containerRef });
+
+  const code = `// Técnica FLIP en React con GSAP
+const firstRect = card.getBoundingClientRect(); // 1. FIRST
+setExpandedId(id); // 2. LAST (Trigger React Render)
+
+useGSAP(() => {
+  const lastRect = card.getBoundingClientRect();
+  const dx = firstRect.left - lastRect.left; // 3. INVERT
+  const dy = firstRect.top - lastRect.top;
+  
+  gsap.set(card, { x: dx, y: dy, scaleX: dw, scaleY: dh, transformOrigin: 'top left' });
+  
+  gsap.to(card, { // 4. PLAY
+    x: 0, y: 0, scaleX: 1, scaleY: 1,
+    duration: 0.6,
+    ease: "power2.out"
+  });
+}, [expandedId]);`;
+
+  return (
+    <AnimationCard
+      id="gsap-flip"
+      titleEs="Flip Layout Transition"
+      titleEn="FLIP Plugin Principle"
+      prompt="Quiero implementar la técnica FLIP con GSAP y React para expandir de forma elástica una tarjeta seleccionada en una rejilla hasta ocupar el tamaño completo, adaptando su contenido."
+      onRestart={() => setExpandedId(null)}
+      codeString={code}
+      technicalInfo={{
+        tweenMethods: "La técnica FLIP de GSAP calcula la física inicial (First) y final (Last), invierte la posición (Invert) y ejecuta la animación (Play) para transicionar layouts que cambian de dimensiones.",
+        varsObject: "{ x: 0, y: 0, scaleX: 1, scaleY: 1, duration: 0.6 }",
+        specialProps: "transformOrigin: 'top left' (mantiene la esquina de referencia anclada en el inicio de la tarjeta).",
+        aliases: "ScaleX e ScaleY interpolan el tamaño vectorial sin provocar distorsión de repintado del DOM.",
+        easingConcept: "El ease power2.out suaviza la velocidad al aproximarse al tamaño de destino.",
+        callbacksConcept: "onComplete limpia los parámetros de transformación para evitar colisiones con el CSS de rejilla.",
+        timelineStructure: "Sincronizable con transiciones de salida de otros elementos en paralelo.",
+        pluginsAssociated: "Flip Plugin (GSAP Club Premium). Simulado nativamente registrando y calculando los offsets de layouts reactivos."
+      }}
+      sandboxChildren={
+        <div ref={containerRef} className="w-full h-80 bg-slate-950/40 border border-slate-800 rounded-xl p-4 overflow-hidden relative flex flex-col justify-center">
+          <div className={`grid gap-3 h-full ${expandedId ? 'grid-cols-4' : 'grid-cols-2'}`}>
+            {cardData.map(card => {
+              const isExpanded = expandedId === card.id;
+              const isAnyExpanded = expandedId !== null;
+
+              if (isAnyExpanded && !isExpanded) {
+                return (
+                  <div
+                    key={card.id}
+                    data-id={card.id}
+                    className="flip-card opacity-20 bg-slate-900 border border-slate-800/80 rounded-lg p-2 flex items-center justify-center cursor-pointer hover:opacity-30 transition-opacity"
+                    onClick={() => handleToggle(card.id)}
+                  >
+                    <span className="text-[10px] font-mono font-bold text-slate-500 text-center leading-none">{card.title}</span>
+                  </div>
+                );
+              }
+
+              return (
+                <div
+                  key={card.id}
+                  data-id={card.id}
+                  className={`flip-card cursor-pointer rounded-xl bg-gradient-to-tr ${card.color} border border-white/10 shadow-md p-4 flex flex-col justify-between select-none ${
+                    isExpanded ? 'col-span-4 h-full relative z-10' : 'h-full'
+                  }`}
+                  onClick={() => handleToggle(card.id)}
+                >
+                  <div>
+                    <h4 className="font-bold text-white text-xs md:text-sm tracking-wide">{card.title}</h4>
+                    {isExpanded && (
+                      <p className="text-[10px] text-white/90 mt-3 leading-relaxed font-mono animate-in fade-in duration-300">
+                        {card.text} Utilizando el cálculo del bounding rect, invertimos las diferencias espaciales y escalamos fluidamente las cajas del DOM a 60fps.
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex justify-between items-center mt-2 border-t border-white/10 pt-2">
+                    <span className="text-[8px] font-mono text-white/70 uppercase tracking-widest">
+                      {isExpanded ? 'Click para contraer ▲' : 'Click para expandir ▼'}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      }
+      controlsChildren={
+        <div className="col-span-1 sm:col-span-2 lg:col-span-3 text-center text-xs text-slate-400 italic">
+          Haz clic en cualquier tarjeta del mosaico de arriba para observar el cambio de estructura animado por FLIP.
+        </div>
+      }
+    />
+  );
+}
+
+// --- 7.2. ScrollTo & ScrollSmoother ---
+export function ScrollToDemo() {
+  const scrollRef = useRef(null);
+  const [activeSection, setActiveSection] = useState("A");
+
+  const handleScrollTo = (targetId) => {
+    if (!scrollRef.current) return;
+    const targetElement = scrollRef.current.querySelector(targetId);
+    if (!targetElement) return;
+
+    gsap.to(scrollRef.current, {
+      scrollTo: { y: targetElement, autoKill: false },
+      duration: 1.0,
+      ease: "power2.inOut"
+    });
+    setActiveSection(targetId.replace("#scroll-", "").toUpperCase());
+  };
+
+  const code = `// Requiere registrar ScrollToPlugin (Gratuito)
+gsap.registerPlugin(ScrollToPlugin);
+
+gsap.to(".scroll-container", {
+  duration: 1.0,
+  scrollTo: { y: "#scroll-section-b", autoKill: false },
+  ease: "power2.inOut"
+});`;
+
+  return (
+    <AnimationCard
+      id="scroll-to-smoother"
+      titleEs="ScrollTo & Smoother"
+      titleEn="ScrollToPlugin Interface"
+      prompt="Quiero crear un sistema de scroll elástico e interactivo usando ScrollToPlugin de GSAP que anime el scroll vertical hacia elementos marcados específicos al pulsar un botón."
+      onRestart={() => handleScrollTo("#scroll-sec-a")}
+      codeString={code}
+      technicalInfo={{
+        tweenMethods: "ScrollToPlugin permite animar el scroll de ventanas del navegador o de bloques contenedores usando coordenadas o selectores directos.",
+        varsObject: "scrollTo: { y: selector | number, autoKill: boolean }",
+        specialProps: "autoKill: true (detiene la animación de scroll automáticamente si el usuario interactúa con la rueda del ratón en medio del recorrido).",
+        aliases: "Traduce valores de offset de desplazamiento a propiedades scrollTop / scrollLeft del DOM.",
+        easingConcept: "La aceleración en los saltos largos suaviza la entrada y salida mediante power2.inOut.",
+        callbacksConcept: "onComplete se ejecuta al estabilizarse el scroll en la posición de destino.",
+        timelineStructure: "Se puede encadenar con revelaciones de contenido después de situar el scrollbar.",
+        pluginsAssociated: "Plugin ScrollTo (Gratuito en GreenSock). Registrado mediante gsap.registerPlugin(ScrollToPlugin)."
+      }}
+      sandboxChildren={
+        <div className="w-full flex flex-col gap-4 py-2">
+          {/* Section Selector Buttons */}
+          <div className="flex gap-2 justify-center">
+            {["a", "b", "c", "d"].map((sec) => (
+              <button
+                key={sec}
+                onClick={() => handleScrollTo(`#scroll-sec-${sec}`)}
+                className={`px-3 py-1.5 rounded-lg border font-mono text-[10px] font-bold tracking-wider transition-all uppercase ${
+                  activeSection === sec.toUpperCase()
+                    ? "bg-purple-500 border-purple-400 text-white shadow-lg shadow-purple-500/20"
+                    : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                Sección {sec.toUpperCase()}
+              </button>
+            ))}
+          </div>
+
+          {/* Scrollable Container */}
+          <div 
+            ref={scrollRef} 
+            className="w-full h-44 overflow-y-auto bg-slate-950/60 border border-slate-850 rounded-xl p-4 space-y-16 scroll-container"
+            style={{ scrollbarWidth: "thin" }}
+          >
+            <div id="scroll-sec-a" className="h-28 border border-purple-500/10 rounded-lg p-3 bg-purple-950/10 flex flex-col justify-between">
+              <span className="text-[10px] font-mono text-purple-400 font-bold tracking-widest">SECCIÓN A: INICIO</span>
+              <p className="text-[10px] text-slate-400 leading-relaxed">El santuario del movimiento web. Control de coordenadas iniciales y timelines fluidos.</p>
+            </div>
+            <div id="scroll-sec-b" className="h-28 border border-cyan-500/10 rounded-lg p-3 bg-cyan-950/10 flex flex-col justify-between">
+              <span className="text-[10px] font-mono text-cyan-400 font-bold tracking-widest">SECCIÓN B: DISEÑO DINÁMICO</span>
+              <p className="text-[10px] text-slate-400 leading-relaxed">Sincronización milimétrica de elementos. El scrollbar alimenta el progreso de interpolación.</p>
+            </div>
+            <div id="scroll-sec-c" className="h-28 border border-emerald-500/10 rounded-lg p-3 bg-emerald-950/10 flex flex-col justify-between">
+              <span className="text-[10px] font-mono text-emerald-400 font-bold tracking-widest">SECCIÓN C: FÍSICA INICIAL</span>
+              <p className="text-[10px] text-slate-400 leading-relaxed">Fricciones dinámicas aplicadas al deslizamiento. Emulación de fricción del viento.</p>
+            </div>
+            <div id="scroll-sec-d" className="h-28 border border-rose-500/10 rounded-lg p-3 bg-rose-950/10 flex flex-col justify-between">
+              <span className="text-[10px] font-mono text-rose-400 font-bold tracking-widest">SECCIÓN D: FINAL DEL VIAJE</span>
+              <p className="text-[10px] text-slate-400 leading-relaxed">Estabilización final del puntero mediante amortiguación elástica de velocidad.</p>
+            </div>
+          </div>
+        </div>
+      }
+      controlsChildren={
+        <div className="col-span-1 sm:col-span-2 lg:col-span-3 text-center text-xs text-slate-400 italic">
+          Los botones superiores simulan clics de anclas que desplazan el contenedor interno usando <strong className="text-purple-400">ScrollToPlugin</strong>.
+        </div>
+      }
+    />
+  );
+}
+
+// --- 7.3. DrawSVG FX ---
+export function DrawSvgDemo() {
+  const [triggerCount, setTriggerCount] = useState(0);
+  const containerRef = useRef(null);
+
+  const triggerAnimation = () => {
+    setTriggerCount(prev => prev + 1);
+  };
+
+  useGSAP(() => {
+    if (!containerRef.current) return;
+    const paths = containerRef.current.querySelectorAll('.draw-path');
+
+    paths.forEach(path => {
+      // 1. Obtener la longitud física del trazado vectorial
+      const length = path.getTotalLength();
+      
+      // 2. Fijar estados de inicio (completamente oculto/desplazado)
+      gsap.set(path, {
+        strokeDasharray: length,
+        strokeDashoffset: length
+      });
+
+      // 3. Animar de vuelta a cero (dibujado completo)
+      gsap.to(path, {
+        strokeDashoffset: 0,
+        duration: 2.0,
+        ease: "power2.inOut",
+        stagger: 0.15
+      });
+    });
+  }, { dependencies: [triggerCount], scope: containerRef });
+
+  const code = `// Animación nativa de trazo SVG (DrawSVG simulación)
+const length = path.getTotalLength();
+
+// Ocultar trazado usando dash offsets:
+gsap.set(path, {
+  strokeDasharray: length,
+  strokeDashoffset: length
+});
+
+// Animar el contorno de trazo:
+gsap.to(path, {
+  strokeDashoffset: 0,
+  duration: 2.0,
+  stagger: 0.15,
+  ease: "power2.inOut"
+});`;
+
+  return (
+    <AnimationCard
+      id="draw-svg"
+      titleEs="DrawSVG FX"
+      titleEn="Vector Stroke Drawing"
+      prompt="Quiero simular el comportamiento de DrawSVG de GSAP para auto-dibujar progresivamente las líneas de un icono o ilustración vectorial usando stroke-dashoffset."
+      onRestart={triggerAnimation}
+      codeString={code}
+      technicalInfo={{
+        tweenMethods: "DrawSVG simula la escritura de vectores manipulando las propiedades SVG strokeDasharray y strokeDashoffset basándose en la longitud del camino.",
+        varsObject: "{ strokeDashoffset: 0, duration: 2.0, stagger: 0.15 }",
+        specialProps: "strokeDasharray (define el espaciado de rayas del contorno), strokeDashoffset (desplaza el patrón de rayas para ocultar/revelar).",
+        aliases: "No requiere transformaciones complejas, altera propiedades directas de representación del navegador.",
+        easingConcept: "La curva suaviza el tramo medio del contorno dinámicamente.",
+        callbacksConcept: "onUpdate renderiza de forma consecutiva.",
+        timelineStructure: "Excelente para transiciones de carga de logotipos o dibujos geométricos.",
+        pluginsAssociated: "DrawSVGPlugin (GSAP Club Premium). Simulado calculando la longitud getTotalLength() directamente en el DOM."
+      }}
+      sandboxChildren={
+        <div ref={containerRef} className="w-full flex justify-center py-4 bg-slate-950/20 border border-slate-900 rounded-xl p-4">
+          <svg viewBox="0 0 100 100" className="w-44 h-44 text-cyan-400 drop-shadow-[0_0_15px_rgba(34,211,238,0.3)]">
+            {/* Concentric outer circle */}
+            <circle
+              cx="50"
+              cy="50"
+              r="44"
+              className="draw-path fill-none stroke-purple-500/30 stroke-[1.5]"
+            />
+            {/* Concentric inner circle */}
+            <circle
+              cx="50"
+              cy="50"
+              r="34"
+              className="draw-path fill-none stroke-cyan-400/80 stroke-2"
+            />
+            {/* Geometric Cross Lines */}
+            <path
+              d="M 26 26 L 74 74"
+              className="draw-path fill-none stroke-purple-400 stroke-[1.5] stroke-dasharray-4"
+            />
+            <path
+              d="M 74 26 L 26 74"
+              className="draw-path fill-none stroke-purple-400 stroke-[1.5] stroke-dasharray-4"
+            />
+            {/* Outer box border */}
+            <rect
+              x="22"
+              y="22"
+              width="56"
+              height="56"
+              rx="8"
+              className="draw-path fill-none stroke-emerald-400/90 stroke-2"
+            />
+            {/* Center target circle */}
+            <circle
+              cx="50"
+              cy="50"
+              r="10"
+              className="draw-path fill-none stroke-cyan-300 stroke-2"
+            />
+          </svg>
+        </div>
+      }
+      controlsChildren={
+        <div className="col-span-1 sm:col-span-2 lg:col-span-3 text-center text-xs text-slate-400 italic">
+          Haz clic en "Reiniciar Animación" para ver el contorno vectorial autotrazándose en orden coordinado.
+        </div>
+      }
+    />
+  );
+}
+
+// --- 7.4. Inertia & Physics Drag ---
+export function InertiaDragDemo() {
+  const containerRef = useRef(null);
+  const targetRef = useRef(null);
+  const draggableInstance = useRef(null);
+
+  const [frictionVal, setFrictionVal] = useState(0.85); // drag friction coefficient
+  const [elasticity, setElasticity] = useState(0.7); // bounce elasticity
+
+  useGSAP(() => {
+    if (!targetRef.current || !containerRef.current) return;
+
+    if (draggableInstance.current && draggableInstance.current.length > 0) {
+      draggableInstance.current[0].kill();
+    }
+
+    let velocityX = 0;
+    let velocityY = 0;
+    let lastX = 0;
+    let lastY = 0;
+    let lastTime = Date.now();
+
+    draggableInstance.current = Draggable.create(targetRef.current, {
+      bounds: containerRef.current,
+      edgeResistance: 0.85,
+      type: "x,y",
+      onDragStart: function() {
+        gsap.killTweensOf(this.target);
+        lastX = this.x;
+        lastY = this.y;
+        lastTime = Date.now();
+        velocityX = 0;
+        velocityY = 0;
+      },
+      onDrag: function() {
+        const now = Date.now();
+        const dt = (now - lastTime) / 1000;
+        if (dt > 0) {
+          // Calcular la velocidad vectorial en px/s
+          velocityX = (this.x - lastX) / dt;
+          velocityY = (this.y - lastY) / dt;
+        }
+        lastX = this.x;
+        lastY = this.y;
+        lastTime = now;
+      },
+      onRelease: function() {
+        // Simular inercia amortiguada por fricción
+        const decay = frictionVal;
+        
+        // Distancia proyectada = velocidad * factor de inercia
+        let targetX = this.x + (velocityX * 0.18 * decay);
+        let targetY = this.y + (velocityY * 0.18 * decay);
+
+        // Límites del contenedor
+        const maxBoundX = 140;
+        const minBoundX = -140;
+        const maxBoundY = 60;
+        const minBoundY = -60;
+
+        let finalX = Math.max(minBoundX, Math.min(maxBoundX, targetX));
+        let finalY = Math.max(minBoundY, Math.min(maxBoundY, targetY));
+
+        let bounceX = null;
+        let bounceY = null;
+
+        // Detectar colisiones y calcular el punto de rebote físico elástico
+        if (targetX < minBoundX || targetX > maxBoundX) {
+          const delta = targetX < minBoundX ? (minBoundX - targetX) : (maxBoundX - targetX);
+          bounceX = targetX < minBoundX ? (minBoundX + delta * elasticity) : (maxBoundX + delta * elasticity);
+        }
+        if (targetY < minBoundY || targetY > maxBoundY) {
+          const delta = targetY < minBoundY ? (minBoundY - targetY) : (maxBoundY - targetY);
+          bounceY = targetY < minBoundY ? (minBoundY + delta * elasticity) : (maxBoundY + delta * elasticity);
+        }
+
+        const tl = gsap.timeline();
+        tl.to(this.target, {
+          x: finalX,
+          y: finalY,
+          duration: 1.4,
+          ease: "power3.out"
+        });
+
+        if (bounceX !== null || bounceY !== null) {
+          tl.to(this.target, {
+            x: bounceX !== null ? Math.max(minBoundX, Math.min(maxBoundX, bounceX)) : finalX,
+            y: bounceY !== null ? Math.max(minBoundY, Math.min(maxBoundY, bounceY)) : finalY,
+            duration: 0.5,
+            ease: "bounce.out"
+          }, "-=0.3"); // solapamiento para continuidad elástica
+        }
+      }
+    });
+
+    return () => {
+      if (draggableInstance.current && draggableInstance.current.length > 0) {
+        draggableInstance.current[0].kill();
+      }
+    };
+  }, { dependencies: [frictionVal, elasticity], scope: containerRef });
+
+  const code = `// Simulación física de InertiaPlugin con Draggable
+Draggable.create(".puck", {
+  bounds: ".container",
+  onDrag: function() {
+    velocityX = (this.x - lastX) / dt;
+  },
+  onRelease: function() {
+    let targetX = this.x + (velocityX * 0.18 * friction);
+    // Aplicar deslizamiento inercial con rebote elástico:
+    gsap.to(this.target, { x: finalX, ease: "power3.out" });
+  }
+});`;
+
+  return (
+    <AnimationCard
+      id="inertia-drag"
+      titleEs="Inertia & Physics Drag"
+      titleEn="Draggable Inertia Bounces"
+      prompt="Quiero simular el comportamiento de InertiaPlugin de GSAP midiendo la velocidad de salida de un puck al arrastrarlo y deslizarlo dinámicamente con fricción y rebote físico en los bordes."
+      onRestart={() => {
+        if (targetRef.current) {
+          gsap.to(targetRef.current, { x: 0, y: 0, duration: 0.6, ease: "power2.out" });
+        }
+      }}
+      codeString={code}
+      technicalInfo={{
+        tweenMethods: "La inercia se calcula a partir de la velocidad residual en el instante de liberación y se aplica mediante curvas de desaceleración cúbicas.",
+        varsObject: "Draggable.create(target, { onDrag, onRelease })",
+        specialProps: "edgeResistance: fricción al cruzar los límites del contenedor.",
+        aliases: "velocityX y velocityY calculados a partir de diferenciales temporales entre frames (dt).",
+        easingConcept: "El ease power3.out emula el deslizamiento amortiguado por fricción mecánica.",
+        callbacksConcept: "onDragStart limpia tweens activos, onDrag actualiza diferenciales de velocidad, onRelease lanza la inercia.",
+        timelineStructure: "Un timeline encadena el deslizamiento inercial y el rebote reactivo tras colisión.",
+        pluginsAssociated: "InertiaPlugin (Premium Club). Simulado localmente programando el lanzamiento inercial por velocidad."
+      }}
+      sandboxChildren={
+        <div ref={containerRef} className="w-full h-56 relative border border-slate-800 bg-slate-950/40 rounded-xl overflow-hidden flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-5">
+            <Move size={80} className="text-slate-300 animate-pulse" />
+          </div>
+          {/* Draggable Puck */}
+          <div 
+            ref={targetRef} 
+            className="w-20 h-20 rounded-full bg-gradient-to-tr from-cyan-400 to-indigo-500 border border-cyan-300/30 shadow-[0_0_20px_rgba(34,211,238,0.25)] flex flex-col items-center justify-center cursor-grab active:cursor-grabbing z-10 select-none"
+          >
+            <MousePointer size={14} className="text-white mb-0.5 animate-bounce" />
+            <h4 className="text-[9px] text-white font-extrabold uppercase font-mono tracking-widest leading-none">PUCK</h4>
+            <span className="text-[7px] text-cyan-200 font-mono mt-0.5 leading-none">INERCIA</span>
+          </div>
+        </div>
+      }
+      controlsChildren={
+        <>
+          <Slider label="Fricción de Deslizamiento (Friction)" min={0.2} max={1.5} step={0.05} value={frictionVal} onChange={setFrictionVal} />
+          <Slider label="Elasticidad de Rebote (Bounce)" min={0.1} max={1.2} step={0.05} value={elasticity} onChange={setElasticity} />
+        </>
+      }
+    />
+  );
+}
+
+// --- 7.5. Three.js + GSAP WebGL 3D ---
+export function ThreeWebGLDemo() {
+  const canvasRef = useRef(null);
+  const [speed, setSpeed] = useState(1);
+  const [scale, setScale] = useState(1);
+  const [triggerCount, setTriggerCount] = useState(0);
+
+  useEffect(() => {
+    if (!canvasRef.current) return;
+
+    // 1. Inicializar Three.js
+    const width = canvasRef.current.clientWidth || 300;
+    const height = canvasRef.current.clientHeight || 180;
+
+    const scene = new THREE.Scene();
+    
+    // Cámara perspectiva
+    const camera = new THREE.PerspectiveCamera(60, width / height, 0.1, 100);
+    camera.position.z = 4.2;
+
+    // Renderizador con fondo transparente
+    const renderer = new THREE.WebGLRenderer({
+      canvas: canvasRef.current,
+      antialias: true,
+      alpha: true
+    });
+    renderer.setSize(width, height);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+    // 2. Geometría 3D (TorusKnot de rejilla metálica futurista)
+    const geometry = new THREE.TorusKnotGeometry(0.85, 0.22, 90, 14);
+    
+    // Material Normal con sombreado de vectores de colores
+    const material = new THREE.MeshNormalMaterial({ 
+      wireframe: true 
+    });
+    const mesh = new THREE.Mesh(geometry, material);
+    scene.add(mesh);
+
+    // 3. Animaciones GSAP controlando las propiedades del objeto 3D
+    // Rotación infinita en múltiples ejes
+    const rotationTween = gsap.to(mesh.rotation, {
+      x: Math.PI * 2,
+      y: Math.PI * 2,
+      duration: 8 / speed,
+      repeat: -1,
+      ease: "none"
+    });
+
+    // Escala del mesh conectada al estado del slider reactivo
+    const scaleTween = gsap.to(mesh.scale, {
+      x: scale,
+      y: scale,
+      z: scale,
+      duration: 0.6,
+      ease: "back.out(1.5)"
+    });
+
+    // Movimiento oscilatorio de la cámara (efecto flotación)
+    const cameraTween = gsap.to(camera.position, {
+      z: 5.0,
+      y: 0.2,
+      duration: 3.5,
+      yoyo: true,
+      repeat: -1,
+      ease: "power1.inOut"
+    });
+
+    // 4. Bucle de renderizado
+    let animationFrameId;
+    const animate = () => {
+      renderer.render(scene, camera);
+      animationFrameId = requestAnimationFrame(animate);
+    };
+    animate();
+
+    // Redimensionado de pantalla
+    const handleResize = () => {
+      if (!canvasRef.current) return;
+      const w = canvasRef.current.clientWidth;
+      const h = canvasRef.current.clientHeight;
+      camera.aspect = w / h;
+      camera.updateProjectionMatrix();
+      renderer.setSize(w, h);
+    };
+    window.addEventListener('resize', handleResize);
+
+    // Limpieza al desmontar
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      window.removeEventListener('resize', handleResize);
+      rotationTween.kill();
+      scaleTween.kill();
+      cameraTween.kill();
+      geometry.dispose();
+      material.dispose();
+      renderer.dispose();
+    };
+  }, [speed, scale, triggerCount]);
+
+  const code = `// Integración real de Three.js + GSAP
+const scene = new THREE.Scene();
+const mesh = new THREE.Mesh(geometry, material);
+scene.add(mesh);
+
+// GSAP anima directamente propiedades de rotación del mesh de Three.js
+gsap.to(mesh.rotation, {
+  x: Math.PI * 2,
+  y: Math.PI * 2,
+  duration: 8,
+  repeat: -1,
+  ease: "none"
+});
+
+// GSAP anima la escala física basada en variables React
+gsap.to(mesh.scale, {
+  x: ${scale}, y: ${scale}, z: ${scale},
+  duration: 0.6,
+  ease: "back.out(1.5)"
+});`;
+
+  return (
+    <AnimationCard
+      id="three-gsap"
+      titleEs="Three.js + GSAP WebGL 3D"
+      titleEn="WebGL Material Tweening"
+      prompt="Quiero renderizar un TorusKnot en 3D interactivo usando Three.js, y animar sus propiedades de rotación física tridimensional de forma continua y su escala reactivamente mediante GSAP."
+      onRestart={() => setTriggerCount(prev => prev + 1)}
+      codeString={code}
+      technicalInfo={{
+        tweenMethods: "GSAP puede interpolar numéricamente cualquier objeto y propiedad en JavaScript, lo que permite modificar dinámicamente matrices de rotación, posición y escalado de WebGL/Three.js.",
+        varsObject: "gsap.to(mesh.rotation, { x: value, y: value, duration: number })",
+        specialProps: "z (escala tridimensional o profundidad de cámara).",
+        aliases: "Modifica directamente los objetos Vector3 y Euler de Three.js de manera directa.",
+        easingConcept: "Ideal para animar la velocidad de rotación infinita sin cortes visuales usando ease: 'none'.",
+        callbacksConcept: "onUpdate actualiza transformaciones en WebGL.",
+        timelineStructure: "Sincroniza transiciones 3D de cámara con cambios de interfaz 2D.",
+        pluginsAssociated: "No requiere plugins adicionales para animar objetos de JavaScript. Conectado al lienzo Canvas mediante WebGLRenderer."
+      }}
+      sandboxChildren={
+        <div className="w-full flex justify-center py-2 bg-slate-950/20 border border-slate-900 rounded-xl relative overflow-hidden h-52 items-center">
+          <canvas ref={canvasRef} className="w-full h-full max-w-sm cursor-pointer z-10" />
+        </div>
+      }
+      controlsChildren={
+        <>
+          <Slider label="Velocidad de Rotación (Speed)" min={0.2} max={3.0} step={0.2} value={speed} onChange={setSpeed} suffix="x" />
+          <Slider label="Escala del Torus (Scale)" min={0.5} max={1.6} step={0.1} value={scale} onChange={setScale} />
+        </>
+      }
+    />
+  );
+}
+

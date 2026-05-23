@@ -128,6 +128,21 @@ const MENU_TAXONOMY = [
         ]
       }
     ]
+  },
+  {
+    title: "7. MÓDULOS AVANZADOS",
+    submenus: [
+      {
+        title: "Efectos Premium",
+        items: [
+          { name: "Flip Layout", id: "gsap-flip" },
+          { name: "ScrollTo & Smoother", id: "scroll-to-smoother" },
+          { name: "DrawSVG FX", id: "draw-svg" },
+          { name: "Inertia Drag", id: "inertia-drag" },
+          { name: "Three.js + GSAP", id: "three-gsap" }
+        ]
+      }
+    ]
   }
 ];
 
