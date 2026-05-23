@@ -2614,3 +2614,775 @@ gsap.to(mesh.scale, {
   );
 }
 
+// --- CATEGORÍA 08 / EFECTOS DE PORTFOLIO AWWWARDS ---
+
+// --- 8.1. Magnetic Button (Atracción elástica de mouse) ---
+export function MagneticButtonDemo() {
+  const [strength, setStrength] = useState(40);
+  const [duration, setDuration] = useState(0.4);
+  const [radius, setRadius] = useState(120);
+  const [triggerCount, setTriggerCount] = useState(0);
+
+  const containerRef = useRef(null);
+  const buttonRef = useRef(null);
+  const textRef = useRef(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const button = buttonRef.current;
+    const text = textRef.current;
+    if (!container || !button || !text) return;
+
+    const onMouseMove = (e) => {
+      const rect = container.getBoundingClientRect();
+      const mX = e.clientX - rect.left;
+      const mY = e.clientY - rect.top;
+
+      const btnRect = button.getBoundingClientRect();
+      const bX = btnRect.left - rect.left + btnRect.width / 2;
+      const bY = btnRect.top - rect.top + btnRect.height / 2;
+
+      const dist = Math.hypot(mX - bX, mY - bY);
+
+      if (dist < radius) {
+        const factor = (radius - dist) / radius;
+        const targetX = (mX - bX) * (strength / 100) * factor;
+        const targetY = (mY - bY) * (strength / 100) * factor;
+
+        gsap.to(button, {
+          x: targetX,
+          y: targetY,
+          duration: duration,
+          ease: "power2.out",
+          overwrite: "auto"
+        });
+
+        gsap.to(text, {
+          x: targetX * 0.4,
+          y: targetY * 0.4,
+          duration: duration,
+          ease: "power2.out",
+          overwrite: "auto"
+        });
+      } else {
+        gsap.to([button, text], {
+          x: 0,
+          y: 0,
+          duration: 0.8,
+          ease: "elastic.out(1.2, 0.4)",
+          overwrite: "auto"
+        });
+      }
+    };
+
+    const onMouseLeave = () => {
+      gsap.to([button, text], {
+        x: 0,
+        y: 0,
+        duration: 0.8,
+        ease: "elastic.out(1.2, 0.3)",
+        overwrite: "auto"
+      });
+    };
+
+    container.addEventListener("mousemove", onMouseMove);
+    container.addEventListener("mouseleave", onMouseLeave);
+
+    return () => {
+      container.removeEventListener("mousemove", onMouseMove);
+      container.removeEventListener("mouseleave", onMouseLeave);
+    };
+  }, [strength, duration, radius, triggerCount]);
+
+  const code = `// Botón Magnético Interactivo
+const button = buttonRef.current;
+const text = textRef.current;
+
+const onMouseMove = (e) => {
+  const rect = container.getBoundingClientRect();
+  const mX = e.clientX - rect.left;
+  const mY = e.clientY - rect.top;
+
+  const btnRect = button.getBoundingClientRect();
+  const bX = btnRect.left - rect.left + btnRect.width / 2;
+  const bY = btnRect.top - rect.top + btnRect.height / 2;
+
+  const dist = Math.hypot(mX - bX, mY - bY);
+
+  if (dist < ${radius}) {
+    const factor = (${radius} - dist) / ${radius};
+    const targetX = (mX - bX) * (${strength / 100}) * factor;
+    const targetY = (mY - bY) * (${strength / 100}) * factor;
+
+    gsap.to(button, {
+      x: targetX,
+      y: targetY,
+      duration: ${duration},
+      ease: "power2.out",
+      overwrite: "auto"
+    });
+
+    gsap.to(text, {
+      x: targetX * 0.4,
+      y: targetY * 0.4,
+      duration: ${duration},
+      ease: "power2.out",
+      overwrite: "auto"
+    });
+  } else {
+    // Retorno con elasticidad Awwwards
+    gsap.to([button, text], {
+      x: 0,
+      y: 0,
+      duration: 0.8,
+      ease: "elastic.out(1.2, 0.4)",
+      overwrite: "auto"
+    });
+  }
+};`;
+
+  return (
+    <AnimationCard
+      id="magnetic-button"
+      titleEs="Magnetic Button Awwwards"
+      titleEn="Elastic Mouse Attraction"
+      prompt="Crea un botón magnético con GSAP que atraiga la posición del botón y del texto interno con un efecto de paralaje hacia el puntero cuando el cursor entra en el radio de detección, y rebote elásticamente al salir."
+      onRestart={() => setTriggerCount(prev => prev + 1)}
+      codeString={code}
+      technicalInfo={{
+        tweenMethods: "gsap.to() con propiedades CSS translate (x, y).",
+        varsObject: "x, y, duration, ease: 'power2.out' para seguimiento y 'elastic.out' para retorno.",
+        specialProps: "overwrite: 'auto' para anular tweens previos fluidamente durante el movimiento continuo del mouse.",
+        aliases: "x/y mapeados a translate3d de CSS para aceleración por GPU.",
+        easingConcept: "elastic.out(1.2, 0.4) simula la inercia física de un muelle metálico elástico.",
+        callbacksConcept: "Interacción basada en eventos nativos 'mousemove' con coordenadas relativas.",
+        pluginsAssociated: "No requiere plugins adicionales. Funciona sobre el core de GSAP."
+      }}
+      sandboxChildren={
+        <div 
+          ref={containerRef}
+          className="w-full flex justify-center py-12 bg-slate-950/20 border border-slate-900 rounded-xl relative overflow-hidden h-64 items-center cursor-none"
+        >
+          <div 
+            className="absolute rounded-full border border-purple-500/10 bg-purple-500/[0.01] pointer-events-none transition-all duration-300"
+            style={{
+              width: radius * 2,
+              height: radius * 2,
+            }}
+          ></div>
+          <div className="absolute top-4 left-4 text-[10px] font-mono text-slate-500">Mueve el ratón cerca del botón</div>
+          
+          <button
+            ref={buttonRef}
+            className="relative px-8 py-5 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 border border-purple-400/40 text-white font-bold shadow-lg shadow-purple-500/20 transition-colors duration-200 z-10 flex items-center justify-center min-w-[160px] min-h-[60px]"
+          >
+            <span ref={textRef} className="block select-none pointer-events-none">
+              ¡Atráeme!
+            </span>
+          </button>
+        </div>
+      }
+      controlsChildren={
+        <>
+          <Slider label="Fuerza Magnética (Strength)" min={10} max={80} step={5} value={strength} onChange={setStrength} suffix="%" />
+          <Slider label="Duración Interpolación (Lag)" min={0.1} max={1.0} step={0.05} value={duration} onChange={setDuration} suffix="s" />
+          <Slider label="Radio de Acción (Radius)" min={60} max={200} step={10} value={radius} onChange={setRadius} suffix="px" />
+        </>
+      }
+    />
+  );
+}
+
+// --- 8.2. Custom Cursor Follow (Seguidor de cursor ultra fluido) ---
+export function CustomCursorDemo() {
+  const [lag, setLag] = useState(0.15);
+  const [baseSize, setBaseSize] = useState(16);
+  const [hoverScale, setHoverScale] = useState(3.5);
+  const [triggerCount, setTriggerCount] = useState(0);
+
+  const containerRef = useRef(null);
+  const cursorRef = useRef(null);
+  const cursorDotRef = useRef(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const cursor = cursorRef.current;
+    const cursorDot = cursorDotRef.current;
+    if (!container || !cursor || !cursorDot) return;
+
+    const xTo = gsap.quickTo(cursor, "x", { duration: lag, ease: "power3.out" });
+    const yTo = gsap.quickTo(cursor, "y", { duration: lag, ease: "power3.out" });
+
+    const xDotTo = gsap.quickTo(cursorDot, "x", { duration: 0.05, ease: "power2.out" });
+    const yDotTo = gsap.quickTo(cursorDot, "y", { duration: 0.05, ease: "power2.out" });
+
+    gsap.set([cursor, cursorDot], { xPercent: -50, yPercent: -50, x: 150, y: 100 });
+
+    const onMouseMove = (e) => {
+      const rect = container.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const y = e.clientY - rect.top;
+
+      xTo(x);
+      yTo(y);
+      xDotTo(x);
+      yDotTo(y);
+    };
+
+    const onMouseEnter = () => {
+      gsap.to([cursor, cursorDot], { opacity: 1, duration: 0.2 });
+    };
+
+    const onMouseLeave = () => {
+      gsap.to([cursor, cursorDot], { opacity: 0, duration: 0.2 });
+    };
+
+    container.addEventListener("mousemove", onMouseMove);
+    container.addEventListener("mouseenter", onMouseEnter);
+    container.addEventListener("mouseleave", onMouseLeave);
+
+    return () => {
+      container.removeEventListener("mousemove", onMouseMove);
+      container.removeEventListener("mouseenter", onMouseEnter);
+      container.removeEventListener("mouseleave", onMouseLeave);
+    };
+  }, [lag, baseSize, triggerCount]);
+
+  const onItemEnter = () => {
+    gsap.to(cursorRef.current, {
+      width: baseSize * hoverScale,
+      height: baseSize * hoverScale,
+      backgroundColor: "rgba(34, 211, 238, 0.2)",
+      borderColor: "rgba(34, 211, 238, 0.8)",
+      duration: 0.3,
+      ease: "power2.out"
+    });
+    gsap.to(cursorDotRef.current, {
+      scale: 0.5,
+      backgroundColor: "#22d3ee",
+      duration: 0.2
+    });
+  };
+
+  const onItemLeave = () => {
+    gsap.to(cursorRef.current, {
+      width: baseSize,
+      height: baseSize,
+      backgroundColor: "transparent",
+      borderColor: "rgba(168, 85, 247, 0.8)",
+      duration: 0.3,
+      ease: "power2.out"
+    });
+    gsap.to(cursorDotRef.current, {
+      scale: 1,
+      backgroundColor: "#a855f7",
+      duration: 0.2
+    });
+  };
+
+  const code = `// Custom Cursor utilizando gsap.quickTo para rendimiento óptimo de 60fps+
+const xTo = gsap.quickTo(cursorElement, "x", { duration: ${lag}, ease: "power3.out" });
+const yTo = gsap.quickTo(cursorElement, "y", { duration: ${lag}, ease: "power3.out" });
+
+const onMouseMove = (e) => {
+  const rect = container.getBoundingClientRect();
+  xTo(e.clientX - rect.left);
+  yTo(e.clientY - rect.top);
+};
+
+// Modificación del estado del cursor en Hover
+const onHoverEnter = () => {
+  gsap.to(cursorElement, {
+    width: ${baseSize * hoverScale},
+    height: ${baseSize * hoverScale},
+    backgroundColor: "rgba(34, 211, 238, 0.2)",
+    borderColor: "rgba(34, 211, 238, 0.8)",
+    duration: 0.3
+  });
+};`;
+
+  return (
+    <AnimationCard
+      id="custom-cursor"
+      titleEs="Custom Cursor Follow"
+      titleEn="High-Performance gsap.quickTo"
+      prompt="Crea un cursor personalizado fluido usando gsap.quickTo para evitar recálculos excesivos de layout, y haz que se expanda elásticamente y cambie de color y fusión mix-blend al pasar sobre zonas interactivas."
+      onRestart={() => setTriggerCount(prev => prev + 1)}
+      codeString={code}
+      technicalInfo={{
+        tweenMethods: "gsap.quickTo() para asignación directa de coordenadas optimizada en el render-loop.",
+        varsObject: "x, y, duration, ease: 'power3.out' para amortiguar el arrastre y seguir el cursor.",
+        specialProps: "quickTo previene la creación y recolección de miles de objetos Tween innecesarios.",
+        aliases: "Optimiza drásticamente el rendimiento móvil y de pantallas con altas tasas de refresco (120Hz+).",
+        easingConcept: "La pequeña latencia (lag) genera un efecto orgánico de arrastre fluido que parece flotar sobre la interfaz.",
+        callbacksConcept: "Hover interactivo con gsap.to para deformación de escala y cambio cromático.",
+        pluginsAssociated: "Core de GSAP. quickTo es una función integrada en el motor principal."
+      }}
+      sandboxChildren={
+        <div 
+          ref={containerRef}
+          className="w-full flex flex-col justify-center items-center py-12 bg-slate-950/20 border border-slate-900 rounded-xl relative overflow-hidden h-64 cursor-none"
+        >
+          <div 
+            ref={cursorRef}
+            className="absolute pointer-events-none border border-purple-500/80 bg-purple-500/0 rounded-full z-30 transition-shadow duration-300 shadow-[0_0_15px_rgba(168,85,247,0.1)]"
+            style={{
+              width: baseSize,
+              height: baseSize,
+              left: 0,
+              top: 0,
+              willChange: "transform, width, height",
+            }}
+          />
+          <div 
+            ref={cursorDotRef}
+            className="absolute pointer-events-none bg-purple-500 w-1.5 h-1.5 rounded-full z-40"
+            style={{
+              left: 0,
+              top: 0,
+              willChange: "transform",
+            }}
+          />
+          
+          <div className="absolute top-4 left-4 text-[10px] font-mono text-slate-500">Mueve el ratón aquí dentro</div>
+          
+          <div className="flex gap-6 z-10">
+            <div 
+              onMouseEnter={onItemEnter}
+              onMouseLeave={onItemLeave}
+              className="px-6 py-4 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-xs font-semibold text-slate-300 hover:text-white transition-all cursor-none select-none"
+            >
+              Hover Interactivo A
+            </div>
+            
+            <div 
+              onMouseEnter={onItemEnter}
+              onMouseLeave={onItemLeave}
+              className="px-6 py-4 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-xs font-semibold text-slate-300 hover:text-white transition-all cursor-none select-none"
+            >
+              Hover Interactivo B
+            </div>
+          </div>
+        </div>
+      }
+      controlsChildren={
+        <>
+          <Slider label="Suavidad/Fricción (Lag)" min={0.02} max={0.4} step={0.02} value={lag} onChange={setLag} suffix="s" />
+          <Slider label="Tamaño Base" min={10} max={30} step={2} value={baseSize} onChange={setBaseSize} suffix="px" />
+          <Slider label="Escala en Hover" min={2.0} max={6.0} step={0.5} value={hoverScale} onChange={setHoverScale} suffix="x" />
+        </>
+      }
+    />
+  );
+}
+
+// --- 8.3. Infinite Speed Marquee (Marquesina sin cortes con aceleración) ---
+export function InfiniteMarqueeDemo() {
+  const [baseSpeed, setBaseSpeed] = useState(15);
+  const [hoverScale, setHoverScale] = useState(2.0);
+  const [triggerCount, setTriggerCount] = useState(0);
+
+  const marqueeRef = useRef(null);
+  const tweenRef = useRef(null);
+
+  useEffect(() => {
+    const marquee = marqueeRef.current;
+    if (!marquee) return;
+
+    const tween = gsap.to(marquee, {
+      xPercent: -50,
+      repeat: -1,
+      ease: "none",
+      duration: baseSpeed
+    });
+
+    tweenRef.current = tween;
+
+    return () => {
+      tween.kill();
+    };
+  }, [baseSpeed, triggerCount]);
+
+  const onMouseEnter = () => {
+    if (tweenRef.current) {
+      gsap.to(tweenRef.current, {
+        timeScale: hoverScale,
+        duration: 0.6,
+        ease: "power2.out"
+      });
+    }
+  };
+
+  const onMouseLeave = () => {
+    if (tweenRef.current) {
+      gsap.to(tweenRef.current, {
+        timeScale: 1.0,
+        duration: 0.8,
+        ease: "power1.out"
+      });
+    }
+  };
+
+  const code = `// Marquesina Infinita con Modulación de Velocidad (timeScale)
+// Animamos xPercent de -50% sobre un wrapper duplicado para bucle sin fin
+const tween = gsap.to(marqueeElement, {
+  xPercent: -50,
+  repeat: -1,
+  ease: "none",
+  duration: ${baseSpeed}
+});
+
+// Aceleración elástica en Hover / Interacción
+const onHoverEnter = () => {
+  gsap.to(tween, {
+    timeScale: ${hoverScale},
+    duration: 0.6,
+    ease: "power2.out"
+  });
+};
+
+const onHoverLeave = () => {
+  gsap.to(tween, {
+    timeScale: 1.0,
+    duration: 0.8,
+    ease: "power1.out"
+  });
+};`;
+
+  return (
+    <AnimationCard
+      id="infinite-marquee"
+      titleEs="Infinite Speed Marquee"
+      titleEn="Seamless Loop & timeScale modulation"
+      prompt="Diseña una marquesina de texto infinita y continua con GSAP que se mueva de manera constante a 60fps, y cuya escala de tiempo (timeScale) aumente orgánicamente en hover y retorne suavemente a su valor base."
+      onRestart={() => setTriggerCount(prev => prev + 1)}
+      codeString={code}
+      technicalInfo={{
+        tweenMethods: "gsap.to() modulando la propiedad timeScale del objeto Tween de forma progresiva.",
+        varsObject: "xPercent: -50, ease: 'none' para flujo continuo sin parones, repeat: -1 para repetición eterna.",
+        specialProps: "timeScale es el multiplicador de velocidad del tween. 2.0 corre al doble de velocidad, 0.5 a la mitad.",
+        aliases: "xPercent optimiza el rendimiento al forzar transformaciones de CSS en vez de modificar left/right de layout.",
+        easingConcept: "Fricción fluida mediante aceleración amortiguada con ease: 'power2.out' sobre la propiedad timeScale.",
+        callbacksConcept: "Interacción de ratón para acelerar y desacelerar la marquesina mediante hover.",
+        pluginsAssociated: "Ninguno, forma parte del núcleo de GSAP (Core Engine)."
+      }}
+      sandboxChildren={
+        <div 
+          className="w-full flex flex-col justify-center py-12 bg-slate-950/20 border border-slate-900 rounded-xl relative overflow-hidden h-64 items-center"
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
+        >
+          <div className="absolute top-4 left-4 text-[10px] font-mono text-slate-500">Pon el ratón encima para acelerar</div>
+          
+          <div className="w-full bg-slate-900/40 border-y border-slate-800 py-6 overflow-hidden flex whitespace-nowrap">
+            <div 
+              ref={marqueeRef}
+              className="flex space-x-12 pr-12 text-2xl md:text-3xl font-black uppercase tracking-wider text-slate-200 select-none cursor-pointer"
+              style={{ willChange: "transform" }}
+            >
+              <span className="flex items-center gap-4">
+                AWWWARDS PORTFOLIO <span className="text-purple-400">★</span> GSAP SANCTUARY <span className="text-cyan-400">✦</span> SEAMLESS TICKER
+              </span>
+              <span className="flex items-center gap-4">
+                VIBE CODING <span className="text-purple-400">★</span> HIGH PERFORMANCE <span className="text-cyan-400">✦</span> 120FPS SMOOTH
+              </span>
+              <span className="flex items-center gap-4">
+                AWWWARDS PORTFOLIO <span className="text-purple-400">★</span> GSAP SANCTUARY <span className="text-cyan-400">✦</span> SEAMLESS TICKER
+              </span>
+              <span className="flex items-center gap-4">
+                VIBE CODING <span className="text-purple-400">★</span> HIGH PERFORMANCE <span className="text-cyan-400">✦</span> 120FPS SMOOTH
+              </span>
+            </div>
+          </div>
+          
+          <div className="mt-8 text-center text-xs text-slate-500 font-mono">
+            Modulador de velocidad actual (timeScale): <span className="text-purple-400 font-bold">{hoverScale}x (en hover)</span>
+          </div>
+        </div>
+      }
+      controlsChildren={
+        <>
+          <Slider label="Duración del Bucle (Segundos)" min={5} max={30} step={1} value={baseSpeed} onChange={setBaseSpeed} suffix="s" />
+          <Slider label="Multiplicador en Hover (timeScale)" min={1.5} max={5.0} step={0.5} value={hoverScale} onChange={setHoverScale} suffix="x" />
+        </>
+      }
+    />
+  );
+}
+
+// --- 8.4. SVG Clip-Path Reveal (Máscara geométrica dinámica) ---
+export function ClipPathRevealDemo() {
+  const [duration, setDuration] = useState(0.8);
+  const [elasticity, setElasticity] = useState(1.2);
+  const [shape, setShape] = useState("rectangle");
+  const [triggerCount, setTriggerCount] = useState(0);
+
+  const polygonRef = useRef(null);
+  const cardRef = useRef(null);
+
+  const getPoints = (type) => {
+    switch (type) {
+      case "diamond":
+        return "0.5 0, 1 0.5, 0.5 1, 0 0.5";
+      case "triangle":
+        return "0.5 0, 1 1, 0 1, 0.5 0.5";
+      case "rectangle":
+      default:
+        return "0 0, 1 0, 1 1, 0 1";
+    }
+  };
+
+  const getCollapsedPoints = () => {
+    return "0.5 0.5, 0.5 0.5, 0.5 0.5, 0.5 0.5";
+  };
+
+  useEffect(() => {
+    if (polygonRef.current) {
+      gsap.set(polygonRef.current, {
+        attr: { points: getCollapsedPoints() }
+      });
+    }
+  }, [shape, triggerCount]);
+
+  const onMouseEnter = () => {
+    if (polygonRef.current) {
+      gsap.to(polygonRef.current, {
+        attr: { points: getPoints(shape) },
+        duration: duration,
+        ease: `elastic.out(${elasticity}, 0.5)`,
+        overwrite: "auto"
+      });
+    }
+  };
+
+  const onMouseLeave = () => {
+    if (polygonRef.current) {
+      gsap.to(polygonRef.current, {
+        attr: { points: getCollapsedPoints() },
+        duration: 0.5,
+        ease: "power2.out",
+        overwrite: "auto"
+      });
+    }
+  };
+
+  const code = `// SVG Clip-Path Reveal con Morphing de Puntos (objectBoundingBox)
+// Puntos destino: ${shape === "rectangle" ? "Rectángulo [0 0, 1 0, 1 1, 0 1]" : "Diamante [0.5 0, 1 0.5, 0.5 1, 0 0.5]"}
+const onHoverEnter = () => {
+  gsap.to(polygonElement, {
+    attr: { points: "${getPoints(shape)}" },
+    duration: ${duration},
+    ease: "elastic.out(${elasticity}, 0.5)"
+  });
+};
+
+const onHoverLeave = () => {
+  gsap.to(polygonElement, {
+    attr: { points: "0.5 0.5, 0.5 0.5, 0.5 0.5, 0.5 0.5" },
+    duration: 0.5,
+    ease: "power2.out"
+  });
+};`;
+
+  return (
+    <AnimationCard
+      id="clip-path-reveal"
+      titleEs="SVG Clip-Path Reveal"
+      titleEn="Geometric Morphing Mask"
+      prompt="Crea una tarjeta de revelado utilizando un clip-path SVG interactivo con objectBoundingBox, donde un polígono cerrado se expande elásticamente en hover desde un punto central revelando la imagen interna."
+      onRestart={() => setTriggerCount(prev => prev + 1)}
+      codeString={code}
+      technicalInfo={{
+        tweenMethods: "gsap.to() interpolando el atributo de puntos 'attr: { points }' de un polígono SVG.",
+        varsObject: "points (cadena de coordenadas relativas de 0 a 1), duration, ease.",
+        specialProps: "objectBoundingBox en clipPath permite que el polígono sea responsivo y se escale con el contenedor sin código JavaScript adicional.",
+        aliases: "Evita la pesadez de librerías vectoriales de terceros usando capacidades nativas de SVG.",
+        easingConcept: "elastic.out crea un rebote gelatinoso en los bordes del corte al expandirse.",
+        callbacksConcept: "Usa callbacks de React onMouseEnter y onMouseLeave para controlar la transición del clipPath.",
+        pluginsAssociated: "No requiere MorphSVGPlugin, ya que modificamos polígonos del mismo número de puntos en el Core."
+      }}
+      sandboxChildren={
+        <div 
+          ref={cardRef}
+          className="w-full flex flex-col justify-center items-center py-6 bg-slate-950/20 border border-slate-900 rounded-xl relative overflow-hidden h-64 select-none"
+          onMouseEnter={onMouseEnter}
+          onMouseLeave={onMouseLeave}
+        >
+          <div className="absolute top-4 left-4 text-[10px] font-mono text-slate-500">Pasa el ratón por encima del marco</div>
+          
+          <div className="relative w-64 h-44 rounded-xl border border-slate-800 bg-slate-950 overflow-hidden flex items-center justify-center cursor-pointer shadow-premium group">
+            <div className="absolute inset-0 flex items-center justify-center text-slate-600 font-bold uppercase text-xs tracking-widest font-mono">
+              [ Hover para Revelar ]
+            </div>
+            
+            <div 
+              className="absolute inset-0 bg-gradient-to-tr from-purple-600 via-pink-600 to-cyan-500 flex flex-col justify-center items-center p-4"
+              style={{
+                clipPath: "url(#revealMask)",
+                WebkitClipPath: "url(#revealMask)"
+              }}
+            >
+              <span className="text-white text-lg font-black uppercase tracking-wider text-center drop-shadow-md">
+                Awwwards FX
+              </span>
+              <span className="text-cyan-200 text-[10px] font-mono font-bold tracking-widest mt-1">
+                REVELADO GEOMÉTRICO
+              </span>
+            </div>
+
+            <svg className="absolute w-0 h-0" width="0" height="0">
+              <defs>
+                <clipPath id="revealMask" clipPathUnits="objectBoundingBox">
+                  <polygon ref={polygonRef} points="0.5 0.5, 0.5 0.5, 0.5 0.5, 0.5 0.5" />
+                </clipPath>
+              </defs>
+            </svg>
+          </div>
+        </div>
+      }
+      controlsChildren={
+        <>
+          <Slider label="Duración Revelación" min={0.3} max={1.8} step={0.1} value={duration} onChange={setDuration} suffix="s" />
+          <Slider label="Elasticidad (Rebote)" min={0.5} max={2.2} step={0.1} value={elasticity} onChange={setElasticity} />
+          <Selector 
+            label="Tipo de Forma Destino (Shape)" 
+            options={["rectangle", "diamond", "triangle"]} 
+            value={shape} 
+            onChange={setShape} 
+          />
+        </>
+      }
+    />
+  );
+}
+
+// --- 8.5. gsap.registerEffect (Registro global de efectos) ---
+export function GsapEffectsDemo() {
+  const [scale, setScale] = useState(1.15);
+  const [glow, setGlow] = useState(25);
+  const [duration, setDuration] = useState(0.5);
+  const [triggerCount, setTriggerCount] = useState(0);
+
+  const card1Ref = useRef(null);
+  const card2Ref = useRef(null);
+  const card3Ref = useRef(null);
+
+  useEffect(() => {
+    if (!gsap.effects.glowPulse) {
+      gsap.registerEffect({
+        name: "glowPulse",
+        effect: (targets, config) => {
+          return gsap.to(targets, {
+            scale: config.scale,
+            borderColor: config.color,
+            boxShadow: `0 0 ${config.glow}px ${config.color}`,
+            duration: config.duration,
+            yoyo: true,
+            repeat: 1,
+            ease: "sine.inOut"
+          });
+        },
+        defaults: { scale: 1.1, glow: 15, color: "#a855f7", duration: 0.3 }
+      });
+    }
+  }, []);
+
+  const triggerEffect = (ref, customColor) => {
+    if (gsap.effects.glowPulse && ref.current) {
+      gsap.effects.glowPulse(ref.current, {
+        scale: scale,
+        glow: glow,
+        duration: duration,
+        color: customColor
+      });
+    }
+  };
+
+  const code = `// Registro del Efecto Reutilizable
+gsap.registerEffect({
+  name: "glowPulse",
+  effect: (targets, config) => {
+    return gsap.to(targets, {
+      scale: config.scale,
+      borderColor: config.color,
+      boxShadow: \`0 0 \${config.glow}px \${config.color}\`,
+      duration: config.duration,
+      yoyo: true,
+      repeat: 1,
+      ease: "sine.inOut"
+    });
+  },
+  defaults: { scale: 1.1, glow: 15, color: "#a855f7", duration: 0.3 }
+});
+
+// Invocación dinámica desde cualquier componente
+gsap.effects.glowPulse(cardRef.current, {
+  scale: ${scale},
+  glow: ${glow},
+  duration: ${duration},
+  color: "#22d3ee" // Cyan
+});`;
+
+  return (
+    <AnimationCard
+      id="gsap-effects"
+      titleEs="gsap.registerEffect"
+      titleEn="Reusable Global Custom Animation"
+      prompt="Registra un efecto global reutilizable mediante gsap.registerEffect que encapsule una animación de parpadeo, escalado y sombra luminosa (glow) con parámetros dinámicos, y aplícalo a múltiples elementos individuales en la UI."
+      onRestart={() => setTriggerCount(prev => prev + 1)}
+      codeString={code}
+      technicalInfo={{
+        tweenMethods: "gsap.registerEffect() para registrar la lógica de animación, y gsap.effects.effectName() para ejecutarla.",
+        varsObject: "name (cadena identificadora), effect (función generadora de tween), defaults (objeto con parámetros por defecto).",
+        specialProps: "Permite centralizar animaciones repetitivas del sistema de diseño de tu app web.",
+        aliases: "extendTimeline: true permite inyectar el efecto directamente en timelines mediante tl.glowPulse(target, vars).",
+        easingConcept: "sine.inOut suaviza la entrada y la salida de la oscilación yoyo de forma armónica.",
+        callbacksConcept: "Invocación a través de manejadores de eventos onClick o gestos.",
+        pluginsAssociated: "No requiere plugins adicionales. Funciona en el Core principal de GSAP."
+      }}
+      sandboxChildren={
+        <div className="w-full flex flex-col justify-center items-center py-6 bg-slate-950/20 border border-slate-900 rounded-xl relative overflow-hidden h-64 select-none">
+          <div className="absolute top-4 left-4 text-[10px] font-mono text-slate-500">Haz clic en las tarjetas para pulsar el efecto</div>
+          
+          <div className="grid grid-cols-3 gap-4 z-10 w-full max-w-md px-4">
+            <div 
+              ref={card1Ref}
+              onClick={() => triggerEffect(card1Ref, "#a855f7")}
+              className="px-4 py-6 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-center cursor-pointer transition-all duration-150"
+            >
+              <div className="w-6 h-6 rounded-full bg-purple-500/20 border border-purple-500/50 mx-auto mb-3 flex items-center justify-center text-[10px] text-purple-400 font-bold">1</div>
+              <span className="text-[10px] font-mono text-slate-400 font-bold">Efecto Púrpura</span>
+            </div>
+            
+            <div 
+              ref={card2Ref}
+              onClick={() => triggerEffect(card2Ref, "#22d3ee")}
+              className="px-4 py-6 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-center cursor-pointer transition-all duration-150"
+            >
+              <div className="w-6 h-6 rounded-full bg-cyan-500/20 border border-cyan-500/50 mx-auto mb-3 flex items-center justify-center text-[10px] text-cyan-400 font-bold">2</div>
+              <span className="text-[10px] font-mono text-slate-400 font-bold">Efecto Cyan</span>
+            </div>
+            
+            <div 
+              ref={card3Ref}
+              onClick={() => triggerEffect(card3Ref, "#fbbf24")}
+              className="px-4 py-6 rounded-xl border border-slate-800 bg-slate-900/60 hover:bg-slate-900 text-center cursor-pointer transition-all duration-150"
+            >
+              <div className="w-6 h-6 rounded-full bg-yellow-500/20 border border-yellow-500/50 mx-auto mb-3 flex items-center justify-center text-[10px] text-yellow-400 font-bold">3</div>
+              <span className="text-[10px] font-mono text-slate-400 font-bold">Efecto Oro</span>
+            </div>
+          </div>
+        </div>
+      }
+      controlsChildren={
+        <>
+          <Slider label="Escala Máxima (Scale)" min={1.05} max={1.30} step={0.02} value={scale} onChange={setScale} />
+          <Slider label="Intensidad de Brillo (Glow px)" min={10} max={40} step={2} value={glow} onChange={setGlow} suffix="px" />
+          <Slider label="Duración del Pulso" min={0.2} max={1.2} step={0.1} value={duration} onChange={setDuration} suffix="s" />
+        </>
+      }
+    />
+  );
+}
+
+

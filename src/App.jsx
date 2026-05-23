@@ -28,7 +28,12 @@ import {
   ScrollToDemo,
   DrawSvgDemo,
   InertiaDragDemo,
-  ThreeWebGLDemo
+  ThreeWebGLDemo,
+  MagneticButtonDemo,
+  CustomCursorDemo,
+  InfiniteMarqueeDemo,
+  ClipPathRevealDemo,
+  GsapEffectsDemo
 } from './components/animations/AllAnimations';
 import { Sparkles, Terminal, Code2 } from 'lucide-react';
 
@@ -154,6 +159,17 @@ export default function App() {
           <DrawSvgDemo />
           <InertiaDragDemo />
           <ThreeWebGLDemo />
+
+          {/* CATEGORY 8: EFECTOS DE PORTFOLIO AWWWARDS */}
+          <div className="border-l-2 border-cyan-400 pl-4 py-1 pt-12 mb-8">
+            <h2 className="text-xs font-bold text-cyan-400 font-mono tracking-widest uppercase">Categoría 08 / EFECTOS DE PORTFOLIO AWWWARDS</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Efectos interactivos de alta gama física para interfaces premium y portfolios</p>
+          </div>
+          <MagneticButtonDemo />
+          <CustomCursorDemo />
+          <InfiniteMarqueeDemo />
+          <ClipPathRevealDemo />
+          <GsapEffectsDemo />
 
         </div>
       </main>

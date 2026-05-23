@@ -143,6 +143,21 @@ const MENU_TAXONOMY = [
         ]
       }
     ]
+  },
+  {
+    title: "8. PORTFOLIO AWWWARDS",
+    submenus: [
+      {
+        title: "Efectos de Interacción",
+        items: [
+          { name: "Magnetic Button", id: "magnetic-button" },
+          { name: "Custom Cursor Follow", id: "custom-cursor" },
+          { name: "Infinite Marquee", id: "infinite-marquee" },
+          { name: "SVG ClipPath Reveal", id: "clip-path-reveal" },
+          { name: "gsap.registerEffect", id: "gsap-effects" }
+        ]
+      }
+    ]
   }
 ];
 
