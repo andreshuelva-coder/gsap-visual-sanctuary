@@ -33,7 +33,10 @@ import {
   CustomCursorDemo,
   InfiniteMarqueeDemo,
   ClipPathRevealDemo,
-  GsapEffectsDemo
+  GsapEffectsDemo,
+  LetterDominoDemo,
+  HorizontalScrollDemo,
+  TemporalScrollDemo
 } from './components/animations/AllAnimations';
 import { Sparkles, Terminal, Code2 } from 'lucide-react';
 
@@ -170,6 +173,9 @@ export default function App() {
           <InfiniteMarqueeDemo />
           <ClipPathRevealDemo />
           <GsapEffectsDemo />
+          <LetterDominoDemo />
+          <HorizontalScrollDemo />
+          <TemporalScrollDemo />
 
         </div>
       </main>

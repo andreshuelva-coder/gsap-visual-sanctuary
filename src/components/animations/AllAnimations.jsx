@@ -3385,4 +3385,502 @@ gsap.effects.glowPulse(cardRef.current, {
   );
 }
 
+// --- 8.6. Letter Domino FX (Efecto dominó tridimensional tipográfico) ---
+export function LetterDominoDemo() {
+  const [stagger, setStagger] = useState(0.04);
+  const [angle, setAngle] = useState(70);
+  const [duration, setDuration] = useState(0.5);
+  const [triggerCount, setTriggerCount] = useState(0);
+
+  const wordRef = useRef(null);
+
+  const triggerDomino = () => {
+    if (!wordRef.current) return;
+    const chars = wordRef.current.querySelectorAll('.domino-char');
+    
+    gsap.killTweensOf(chars);
+    
+    const tl = gsap.timeline();
+    tl.to(chars, {
+      rotationX: -angle,
+      y: 10,
+      scaleY: 0.8,
+      color: "#22d3ee",
+      duration: duration,
+      stagger: stagger,
+      ease: "power2.inOut"
+    })
+    .to(chars, {
+      rotationX: 0,
+      y: 0,
+      scaleY: 1,
+      color: "#a855f7",
+      duration: duration * 1.5,
+      stagger: stagger,
+      ease: "elastic.out(1.2, 0.4)"
+    });
+  };
+
+  const wordText = "DOMINÓ";
+
+  const code = `// Efecto Dominó Tipográfico (3D Stagger Wave)
+const chars = wordRef.current.querySelectorAll('.domino-char');
+
+const tl = gsap.timeline();
+// Fichas caen
+tl.to(chars, {
+  rotationX: -${angle},
+  y: 10,
+  scaleY: 0.8,
+  color: "#22d3ee",
+  duration: ${duration},
+  stagger: ${stagger},
+  ease: "power2.inOut"
+})
+// Fichas se levantan con elasticidad
+.to(chars, {
+  rotationX: 0,
+  y: 0,
+  scaleY: 1,
+  color: "#a855f7",
+  duration: ${duration * 1.5},
+  stagger: ${stagger},
+  ease: "elastic.out(1.2, 0.4)"
+});`;
+
+  return (
+    <AnimationCard
+      id="letter-domino"
+      titleEs="Letter Domino FX"
+      titleEn="Tipographic 3D Cascade"
+      prompt="Quiero una animación tipográfica en GSAP que simule un efecto dominó, donde al hacer hover o clic sobre un texto, las letras individuales roten en el eje 3D y caigan en cascada escalonada (stagger), volviendo a levantarse elásticamente."
+      onRestart={triggerDomino}
+      codeString={code}
+      technicalInfo={{
+        tweenMethods: "gsap.timeline() encadenando caídas y levantadas consecutivas con staggers.",
+        varsObject: "rotationX, y, scaleY, duration, stagger, ease.",
+        specialProps: "perspective en el contenedor CSS para habilitar el espacio y renderizado 3D real en GPU.",
+        aliases: "rotationX mapea directamente a rotateX en CSS transform.",
+        easingConcept: "elastic.out para el rebote final de la recuperación tipográfica.",
+        callbacksConcept: "Invocación por hover (onMouseEnter) y botón de reinicio.",
+        pluginsAssociated: "No requiere plugins adicionales. Funciona en el Core principal de GSAP."
+      }}
+      sandboxChildren={
+        <div className="w-full flex flex-col justify-center items-center py-6 bg-slate-950/20 border border-slate-900 rounded-xl relative overflow-hidden h-64 select-none">
+          <div className="absolute top-4 left-4 text-[10px] font-mono text-slate-500">Pasa el ratón por encima del texto</div>
+          
+          <div 
+            ref={wordRef}
+            onMouseEnter={triggerDomino}
+            className="flex justify-center items-center gap-1 cursor-pointer py-10"
+            style={{ perspective: "800px" }}
+          >
+            {wordText.split("").map((char, index) => (
+              <span
+                key={index}
+                className="domino-char inline-block text-5xl md:text-7xl font-black text-purple-500 font-mono select-none"
+                style={{
+                  transformOrigin: "bottom center",
+                  display: "inline-block",
+                  willChange: "transform, color"
+                }}
+              >
+                {char}
+              </span>
+            ))}
+          </div>
+        </div>
+      }
+      controlsChildren={
+        <>
+          <Slider label="Retraso Cascada (Stagger)" min={0.02} max={0.15} step={0.01} value={stagger} onChange={setStagger} suffix="s" />
+          <Slider label="Ángulo de Caída (rotateX)" min={30} max={90} step={5} value={angle} onChange={setAngle} suffix="°" />
+          <Slider label="Duración Caída" min={0.2} max={1.0} step={0.05} value={duration} onChange={setDuration} suffix="s" />
+        </>
+      }
+    />
+  );
+}
+
+// --- 8.7. Horizontal Scroll Panel (Carrusel horizontal con gestos) ---
+export function HorizontalScrollDemo() {
+  const [duration, setDuration] = useState(0.6);
+  const [friction, setFriction] = useState(1.5);
+  const [triggerCount, setTriggerCount] = useState(0);
+
+  const containerRef = useRef(null);
+  const trackRef = useRef(null);
+  const [currentSlide, setCurrentSlide] = useState(0);
+  const totalSlides = 4;
+
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+
+    gsap.to(track, {
+      xPercent: -currentSlide * 25,
+      duration: duration,
+      ease: `power2.out(${friction})`,
+      overwrite: "auto"
+    });
+  }, [currentSlide, duration, friction]);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const observer = Observer.create({
+      target: container,
+      type: "wheel,touch",
+      onChangeY: (self) => {
+        if (self.deltaY > 50) {
+          setCurrentSlide(prev => Math.min(prev + 1, totalSlides - 1));
+        } else if (self.deltaY < -50) {
+          setCurrentSlide(prev => Math.max(prev - 1, 0));
+        }
+      },
+      preventDefault: true
+    });
+
+    return () => {
+      observer.kill();
+    };
+  }, []);
+
+  const code = `// Scroll Horizontal interceptando la Rueda del Mouse (Observer)
+// 4 Diapositivas = 25% de desplazamiento por slide
+const onScrollAction = (direction) => {
+  if (direction === "down" && currentSlide < maxSlides) {
+    currentSlide++;
+  } else if (direction === "up" && currentSlide > 0) {
+    currentSlide--;
+  }
+
+  gsap.to(trackElement, {
+    xPercent: -currentSlide * 25,
+    duration: ${duration},
+    ease: "power2.out(${friction})"
+  });
+};
+
+// Configuración de GSAP Observer
+Observer.create({
+  target: containerElement,
+  type: "wheel,touch",
+  onChangeY: (self) => {
+    if (self.deltaY > 50) onScrollAction("down");
+    else if (self.deltaY < -50) onScrollAction("up");
+  },
+  preventDefault: true // evita desplazar la página principal
+});`;
+
+  return (
+    <AnimationCard
+      id="horizontal-scroll"
+      titleEs="Horizontal Scroll Panel"
+      titleEn="Observer-based Lateral Slider"
+      prompt="Crea una sección de scroll horizontal con GSAP donde los eventos de rueda o toque sean interceptados usando el plugin Observer para desplazar un carrete de tarjetas lateralmente con inercia y amortiguación fluidas."
+      onRestart={() => setCurrentSlide(0)}
+      codeString={code}
+      technicalInfo={{
+        tweenMethods: "gsap.to() animando la propiedad xPercent del track de tarjetas.",
+        varsObject: "xPercent, duration, ease.",
+        specialProps: "Observer.create() intercepta eventos Y (rueda/gesto táctil) y los mapea a transformaciones horizontales X.",
+        aliases: "xPercent para realizar desplazamientos optimizados por hardware.",
+        easingConcept: "La fuerza de amortiguación (friction) regula el deslizamiento lateral.",
+        callbacksConcept: "Manejador onChangeY del Observer con control de límites mínimos y máximos.",
+        pluginsAssociated: "Observer Plugin para interceptar y unificar gestos entre mouse, trackpads y dispositivos táctiles."
+      }}
+      sandboxChildren={
+        <div 
+          ref={containerRef}
+          className="w-full flex flex-col justify-center py-6 bg-slate-950/20 border border-slate-900 rounded-xl relative overflow-hidden h-64 select-none cursor-ew-resize"
+        >
+          <div className="absolute top-4 left-4 text-[10px] font-mono text-slate-500 z-10 flex gap-4">
+            <span>Rueda del ratón aquí dentro para deslizar</span>
+            <span className="text-purple-400 font-bold">Slide {currentSlide + 1} / {totalSlides}</span>
+          </div>
+          
+          <div 
+            ref={trackRef}
+            className="flex h-40 w-[400%] relative"
+            style={{ willChange: "transform" }}
+          >
+            {/* Slide 1 */}
+            <div className="w-1/4 px-4 h-full">
+              <div className="w-full h-full rounded-xl bg-gradient-to-br from-purple-900 to-indigo-900 border border-purple-500/30 p-6 flex flex-col justify-between">
+                <span className="text-4xl font-black text-white/20">01</span>
+                <div>
+                  <h4 className="text-md font-bold text-white">Diseño Inmersivo</h4>
+                  <p className="text-xs text-slate-300 mt-1">El scroll horizontal rompe el paradigma vertical tradicional.</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Slide 2 */}
+            <div className="w-1/4 px-4 h-full">
+              <div className="w-full h-full rounded-xl bg-gradient-to-br from-indigo-900 to-cyan-900 border border-indigo-500/30 p-6 flex flex-col justify-between">
+                <span className="text-4xl font-black text-white/20">02</span>
+                <div>
+                  <h4 className="text-md font-bold text-white">Observer Plugin</h4>
+                  <p className="text-xs text-slate-300 mt-1">Sincroniza gestos táctiles y ratón en un único manejador de eventos.</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Slide 3 */}
+            <div className="w-1/4 px-4 h-full">
+              <div className="w-full h-full rounded-xl bg-gradient-to-br from-cyan-900 to-emerald-900 border border-cyan-500/30 p-6 flex flex-col justify-between">
+                <span className="text-4xl font-black text-white/20">03</span>
+                <div>
+                  <h4 className="text-md font-bold text-white">Aceleración GPU</h4>
+                  <p className="text-xs text-slate-300 mt-1">El uso de xPercent garantiza 60fps constantes al evitar reflows.</p>
+                </div>
+              </div>
+            </div>
+            
+            {/* Slide 4 */}
+            <div className="w-1/4 px-4 h-full">
+              <div className="w-full h-full rounded-xl bg-gradient-to-br from-emerald-900 to-purple-900 border border-emerald-500/30 p-6 flex flex-col justify-between">
+                <span className="text-4xl font-black text-white/20">04</span>
+                <div>
+                  <h4 className="text-md font-bold text-white">Interactividad Awwwards</h4>
+                  <p className="text-xs text-slate-300 mt-1">Ideal para portfolios creativos, galerías de arte y showcases.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+            {Array.from({ length: totalSlides }).map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setCurrentSlide(i)}
+                className={`w-2 h-2 rounded-full transition-all duration-300 ${currentSlide === i ? 'bg-cyan-400 w-6' : 'bg-slate-700'}`}
+              />
+            ))}
+          </div>
+        </div>
+      }
+      controlsChildren={
+        <>
+          <Slider label="Duración Desplazamiento" min={0.3} max={1.5} step={0.1} value={duration} onChange={setDuration} suffix="s" />
+          <Slider label="Suavizado (Fricción)" min={0.5} max={3.0} step={0.2} value={friction} onChange={setFriction} />
+          <div className="flex gap-2 justify-between mt-2">
+            <button 
+              onClick={() => setCurrentSlide(prev => Math.max(prev - 1, 0))}
+              className="px-3 py-1.5 rounded bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-400 hover:text-white transition-all uppercase"
+              disabled={currentSlide === 0}
+            >
+              ← Anterior
+            </button>
+            <button 
+              onClick={() => setCurrentSlide(prev => Math.min(prev + 1, totalSlides - 1))}
+              className="px-3 py-1.5 rounded bg-slate-900 border border-slate-800 text-[10px] font-bold text-slate-400 hover:text-white transition-all uppercase"
+              disabled={currentSlide === totalSlides - 1}
+            >
+              Siguiente →
+            </button>
+          </div>
+        </>
+      }
+    />
+  );
+}
+
+// --- 8.8. Temporal Scroll (Transición interactiva de eras antes/después) ---
+export function TemporalScrollDemo() {
+  const [era, setEra] = useState(1);
+  const [duration, setDuration] = useState(0.8);
+  const [triggerCount, setTriggerCount] = useState(0);
+
+  const pastRef = useRef(null);
+  const presentRef = useRef(null);
+  const futureRef = useRef(null);
+  const indicatorRef = useRef(null);
+
+  useEffect(() => {
+    const past = pastRef.current;
+    const present = presentRef.current;
+    const future = futureRef.current;
+    const indicator = indicatorRef.current;
+    if (!past || !present || !future || !indicator) return;
+
+    const tl = gsap.timeline({ defaults: { duration: duration, ease: "power2.inOut" } });
+
+    gsap.to(indicator, {
+      xPercent: era * 100,
+      backgroundColor: era === 0 ? "#10b981" : era === 1 ? "#3b82f6" : "#ec4899",
+      duration: duration
+    });
+
+    if (era === 0) {
+      tl.to(past, { opacity: 1, scale: 1, filter: "blur(0px)", pointerEvents: "auto" }, 0)
+        .to([present, future], { opacity: 0, scale: 0.9, filter: "blur(8px)", pointerEvents: "none" }, 0);
+    } else if (era === 1) {
+      tl.to(present, { opacity: 1, scale: 1, filter: "blur(0px)", pointerEvents: "auto" }, 0)
+        .to([past, future], { opacity: 0, scale: 0.9, filter: "blur(8px)", pointerEvents: "none" }, 0);
+    } else {
+      tl.to(future, { opacity: 1, scale: 1, filter: "blur(0px)", pointerEvents: "auto" }, 0)
+        .to([past, present], { opacity: 0, scale: 0.9, filter: "blur(8px)", pointerEvents: "none" }, 0);
+    }
+  }, [era, duration, triggerCount]);
+
+  const onWheel = (e) => {
+    if (e.deltaY > 30) {
+      setEra(prev => Math.min(prev + 1, 2));
+    } else if (e.deltaY < -30) {
+      setEra(prev => Math.max(prev - 1, 0));
+    }
+  };
+
+  const code = `// Scroll Temporal (Time-Travel Transition)
+// era: 0 (Pasado), 1 (Presente), 2 (Futuro)
+const eras = [pastRef, presentRef, futureRef];
+const indicator = indicatorRef.current;
+
+const tl = gsap.timeline({ defaults: { duration: ${duration}, ease: "power2.inOut" } });
+
+// Posicionar indicador temporal
+gsap.to(indicator, {
+  xPercent: ${era} * 100,
+  backgroundColor: \`\${${era} === 0 ? "#10b981" : ${era} === 1 ? "#3b82f6" : "#ec4899"}\`
+});
+
+// Transición cruzada tridimensional con blur
+if (${era} === 0) {
+  tl.to(pastCard, { opacity: 1, scale: 1, filter: "blur(0px)" }, 0)
+    .to([presentCard, futureCard], { opacity: 0, scale: 0.9, filter: "blur(8px)" }, 0);
+} else if (${era} === 1) {
+  tl.to(presentCard, { opacity: 1, scale: 1, filter: "blur(0px)" }, 0)
+    .to([pastCard, futureCard], { opacity: 0, scale: 0.9, filter: "blur(8px)" }, 0);
+} else {
+  tl.to(futureCard, { opacity: 1, scale: 1, filter: "blur(0px)" }, 0)
+    .to([pastCard, presentCard], { opacity: 0, scale: 0.9, filter: "blur(8px)" }, 0);
+}`;
+
+  return (
+    <AnimationCard
+      id="temporal-scroll"
+      titleEs="Temporal Scroll (Antes/Después)"
+      titleEn="Time-Travel State Morphing"
+      prompt="Crea un panel de viaje temporal en GSAP que permita transicionar de forma fluida entre tres estados (Pasado, Presente y Futuro) animando opacidad, desenfoque tridimensional y colores mediante la rueda del ratón o sliders."
+      onRestart={() => setEra(1)}
+      codeString={code}
+      technicalInfo={{
+        tweenMethods: "gsap.timeline() coordinando desvanecimientos cruzados, desenfoques y transformaciones de escala tridimensionales.",
+        varsObject: "opacity, scale, filter: 'blur()', xPercent, backgroundColor, duration.",
+        specialProps: "filter: 'blur(Xpx)' para lograr transiciones cinemáticas fluidas con aceleración GPU.",
+        aliases: "xPercent para desplazar la barra del indicador temporal.",
+        easingConcept: "power2.inOut suaviza tanto el despegue como el frenado de las transiciones.",
+        callbacksConcept: "Intercepción de rueda del ratón (onWheel) para desplazarse a través del tiempo.",
+        pluginsAssociated: "No requiere plugins especiales. Funciona enteramente sobre el core principal de GSAP."
+      }}
+      sandboxChildren={
+        <div 
+          onWheel={onWheel}
+          className="w-full flex flex-col justify-center items-center py-6 bg-slate-950/20 border border-slate-900 rounded-xl relative overflow-hidden h-64 select-none cursor-ns-resize"
+        >
+          <div className="absolute top-4 left-4 text-[10px] font-mono text-slate-500 z-10">
+            Rueda del ratón arriba/abajo aquí dentro para viajar en el tiempo
+          </div>
+
+          <div className="relative w-72 h-40 rounded-xl overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center">
+            
+            {/* ERA 0: PASADO (1990) */}
+            <div 
+              ref={pastRef}
+              className="absolute inset-0 bg-emerald-950/30 border border-emerald-500/20 p-6 flex flex-col justify-between items-center text-center font-mono"
+              style={{ willChange: "transform, opacity, filter" }}
+            >
+              <div className="text-[10px] text-emerald-400 border border-emerald-500/40 px-2 py-0.5 rounded bg-emerald-950/60 uppercase tracking-widest animate-pulse">
+                [ PASADO - AÑO 1990 ]
+              </div>
+              <div className="text-3xl text-emerald-400 font-bold tracking-tight uppercase select-none">
+                📟 CRT PIXELS
+              </div>
+              <p className="text-[10px] text-emerald-500 max-w-[200px] leading-tight">
+                Terminal de comandos en fósforo verde. Estilo retro, baja resolución y scanlines.
+              </p>
+            </div>
+
+            {/* ERA 1: PRESENTE (2010) */}
+            <div 
+              ref={presentRef}
+              className="absolute inset-0 bg-blue-950/20 border border-blue-500/20 p-6 flex flex-col justify-between items-center text-center font-sans"
+              style={{ willChange: "transform, opacity, filter" }}
+            >
+              <div className="text-[10px] text-blue-400 border border-blue-500/40 px-2 py-0.5 rounded bg-blue-950/60 uppercase tracking-widest">
+                PRESENTE - AÑO 2010
+              </div>
+              <div className="text-3xl text-blue-400 font-extrabold tracking-tight uppercase select-none">
+                🌐 WEB GRID
+              </div>
+              <p className="text-[10px] text-blue-300 max-w-[200px] leading-tight">
+                Diseño estructurado y reticular. Mayor resolución, tipografía limpia y minimalista.
+              </p>
+            </div>
+
+            {/* ERA 2: FUTURO (2026) */}
+            <div 
+              ref={futureRef}
+              className="absolute inset-0 bg-gradient-to-br from-pink-950/40 via-slate-950 to-purple-950/40 border border-pink-500/20 p-6 flex flex-col justify-between items-center text-center font-sans"
+              style={{ willChange: "transform, opacity, filter" }}
+            >
+              <div className="text-[10px] text-pink-400 border border-pink-500/40 px-2 py-0.5 rounded bg-pink-950/60 uppercase tracking-widest font-mono">
+                ✦ FUTURO - AÑO 2026 ✦
+              </div>
+              <div className="text-3xl text-transparent bg-clip-text bg-gradient-to-r from-pink-400 to-purple-400 font-black tracking-wider uppercase select-none drop-shadow-[0_0_10px_rgba(236,72,153,0.3)]">
+                🌌 CYBER PUNK
+              </div>
+              <p className="text-[10px] text-pink-200/80 max-w-[200px] leading-tight font-mono">
+                Composición holística 3D, neon glow, interfaces líquidas e IA omnipresente.
+              </p>
+            </div>
+
+          </div>
+
+          <div className="mt-4 flex bg-slate-900/60 border border-slate-800 rounded-lg p-1 relative w-64 overflow-hidden h-8">
+            <div 
+              ref={indicatorRef}
+              className="absolute top-1 bottom-1 left-1 w-[80px] rounded bg-purple-500 z-0"
+              style={{ willChange: "transform, background-color" }}
+            />
+            <button 
+              onClick={() => setEra(0)}
+              className={`flex-1 text-[9px] font-mono font-bold z-10 transition-colors uppercase ${era === 0 ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              1990
+            </button>
+            <button 
+              onClick={() => setEra(1)}
+              className={`flex-1 text-[9px] font-mono font-bold z-10 transition-colors uppercase ${era === 1 ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              2010
+            </button>
+            <button 
+              onClick={() => setEra(2)}
+              className={`flex-1 text-[9px] font-mono font-bold z-10 transition-colors uppercase ${era === 2 ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}
+            >
+              2026
+            </button>
+          </div>
+        </div>
+      }
+      controlsChildren={
+        <>
+          <Slider label="Control Temporal (Era)" min={0} max={2} step={1} value={era} onChange={setEra} />
+          <Slider label="Duración Viaje Temporal" min={0.3} max={1.8} step={0.1} value={duration} onChange={setDuration} suffix="s" />
+          <div className="flex justify-between mt-2 text-[10px] text-slate-500 font-mono">
+            <span>PASADO</span>
+            <span>PRESENTE</span>
+            <span>FUTURO</span>
+          </div>
+        </>
+      }
+    />
+  );
+}
+
+
 

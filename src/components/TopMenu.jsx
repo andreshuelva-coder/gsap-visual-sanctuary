@@ -154,7 +154,10 @@ const MENU_TAXONOMY = [
           { name: "Custom Cursor Follow", id: "custom-cursor" },
           { name: "Infinite Marquee", id: "infinite-marquee" },
           { name: "SVG ClipPath Reveal", id: "clip-path-reveal" },
-          { name: "gsap.registerEffect", id: "gsap-effects" }
+          { name: "gsap.registerEffect", id: "gsap-effects" },
+          { name: "Letter Domino FX", id: "letter-domino" },
+          { name: "Horizontal Scroll Panel", id: "horizontal-scroll" },
+          { name: "Temporal Scroll (Antes/Después)", id: "temporal-scroll" }
         ]
       }
     ]
