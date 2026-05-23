@@ -3512,6 +3512,7 @@ export function HorizontalScrollDemo() {
   const trackRef = useRef(null);
   const [currentSlide, setCurrentSlide] = useState(0);
   const totalSlides = 4;
+  const transitioningRef = useRef(false);
 
   useEffect(() => {
     const track = trackRef.current;
@@ -3532,12 +3533,31 @@ export function HorizontalScrollDemo() {
     const observer = Observer.create({
       target: container,
       type: "wheel,touch",
-      onChangeY: (self) => {
-        if (self.deltaY > 50) {
-          setCurrentSlide(prev => Math.min(prev + 1, totalSlides - 1));
-        } else if (self.deltaY < -50) {
-          setCurrentSlide(prev => Math.max(prev - 1, 0));
-        }
+      onUp: () => {
+        if (transitioningRef.current) return;
+        setCurrentSlide(prev => {
+          const next = Math.max(prev - 1, 0);
+          if (next !== prev) {
+            transitioningRef.current = true;
+            setTimeout(() => {
+              transitioningRef.current = false;
+            }, duration * 1000 + 100);
+          }
+          return next;
+        });
+      },
+      onDown: () => {
+        if (transitioningRef.current) return;
+        setCurrentSlide(prev => {
+          const next = Math.min(prev + 1, totalSlides - 1);
+          if (next !== prev) {
+            transitioningRef.current = true;
+            setTimeout(() => {
+              transitioningRef.current = false;
+            }, duration * 1000 + 100);
+          }
+          return next;
+        });
       },
       preventDefault: true
     });
@@ -3545,33 +3565,29 @@ export function HorizontalScrollDemo() {
     return () => {
       observer.kill();
     };
-  }, []);
+  }, [duration]);
 
   const code = `// Scroll Horizontal interceptando la Rueda del Mouse (Observer)
 // 4 Diapositivas = 25% de desplazamiento por slide
-const onScrollAction = (direction) => {
-  if (direction === "down" && currentSlide < maxSlides) {
-    currentSlide++;
-  } else if (direction === "up" && currentSlide > 0) {
-    currentSlide--;
-  }
-
-  gsap.to(trackElement, {
-    xPercent: -currentSlide * 25,
-    duration: ${duration},
-    ease: "power2.out(${friction})"
-  });
-};
-
-// Configuración de GSAP Observer
 Observer.create({
   target: containerElement,
   type: "wheel,touch",
-  onChangeY: (self) => {
-    if (self.deltaY > 50) onScrollAction("down");
-    else if (self.deltaY < -50) onScrollAction("up");
+  onDown: () => {
+    // Rueda hacia abajo -> Siguiente slide
+    setCurrentSlide(prev => Math.min(prev + 1, 3));
+  },
+  onUp: () => {
+    // Rueda hacia arriba -> Anterior slide
+    setCurrentSlide(prev => Math.max(prev - 1, 0));
   },
   preventDefault: true // evita desplazar la página principal
+});
+
+// Desplazamiento reactivo con GSAP
+gsap.to(trackElement, {
+  xPercent: -currentSlide * 25,
+  duration: ${duration},
+  ease: "power2.out(${friction})"
 });`;
 
   return (
