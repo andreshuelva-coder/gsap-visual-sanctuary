@@ -3714,6 +3714,8 @@ export function TemporalScrollDemo() {
   const presentRef = useRef(null);
   const futureRef = useRef(null);
   const indicatorRef = useRef(null);
+  const prevEraRef = useRef(1);
+  const transitioningRef = useRef(false);
 
   useEffect(() => {
     const past = pastRef.current;
@@ -3722,7 +3724,10 @@ export function TemporalScrollDemo() {
     const indicator = indicatorRef.current;
     if (!past || !present || !future || !indicator) return;
 
-    const tl = gsap.timeline({ defaults: { duration: duration, ease: "power2.inOut" } });
+    const prevEra = prevEraRef.current;
+    prevEraRef.current = era; // update for next cycle
+
+    const tl = gsap.timeline({ defaults: { duration: duration, ease: "power2.out" } });
 
     gsap.to(indicator, {
       xPercent: era * 100,
@@ -3730,66 +3735,106 @@ export function TemporalScrollDemo() {
       duration: duration
     });
 
-    if (era === 0) {
-      tl.to(past, { opacity: 1, scale: 1, filter: "blur(0px)", pointerEvents: "auto" }, 0)
-        .to([present, future], { opacity: 0, scale: 0.9, filter: "blur(8px)", pointerEvents: "none" }, 0);
-    } else if (era === 1) {
-      tl.to(present, { opacity: 1, scale: 1, filter: "blur(0px)", pointerEvents: "auto" }, 0)
-        .to([past, future], { opacity: 0, scale: 0.9, filter: "blur(8px)", pointerEvents: "none" }, 0);
-    } else {
-      tl.to(future, { opacity: 1, scale: 1, filter: "blur(0px)", pointerEvents: "auto" }, 0)
-        .to([past, present], { opacity: 0, scale: 0.9, filter: "blur(8px)", pointerEvents: "none" }, 0);
-    }
+    const isForward = era > prevEra;
+    const refs = [pastRef, presentRef, futureRef];
+
+    refs.forEach((ref, index) => {
+      const el = ref.current;
+      if (!el) return;
+
+      if (index === era) {
+        // Incoming element: zooms towards the viewer
+        if (era !== prevEra) {
+          const startScale = isForward ? 0.1 : 2.5;
+          const startBlur = isForward ? "blur(12px)" : "blur(4px)";
+
+          gsap.killTweensOf(el);
+          tl.fromTo(el,
+            { scale: startScale, opacity: 0, filter: startBlur, zIndex: 20 },
+            { scale: 1, opacity: 1, filter: "blur(0px)", pointerEvents: "auto" },
+            0
+          );
+        } else {
+          gsap.killTweensOf(el);
+          gsap.set(el, { scale: 1, opacity: 1, filter: "blur(0px)", zIndex: 20, pointerEvents: "auto" });
+        }
+      } else if (index === prevEra && era !== prevEra) {
+        // Outgoing element: zoom out or shrink away
+        const endScale = isForward ? 2.5 : 0.1;
+        const endBlur = isForward ? "blur(4px)" : "blur(12px)";
+
+        gsap.killTweensOf(el);
+        tl.to(el,
+          { scale: endScale, opacity: 0, filter: endBlur, zIndex: 10, pointerEvents: "none" },
+          0
+        );
+      } else {
+        gsap.killTweensOf(el);
+        gsap.set(el, { opacity: 0, pointerEvents: "none", zIndex: 10 });
+      }
+    });
   }, [era, duration, triggerCount]);
+
+  const changeEra = (target) => {
+    if (transitioningRef.current || target === era) return;
+    transitioningRef.current = true;
+    setEra(target);
+    setTimeout(() => {
+      transitioningRef.current = false;
+    }, duration * 1000 + 50);
+  };
 
   const onWheel = (e) => {
     if (e.deltaY > 30) {
-      setEra(prev => Math.min(prev + 1, 2));
+      const next = Math.min(era + 1, 2);
+      changeEra(next);
     } else if (e.deltaY < -30) {
-      setEra(prev => Math.max(prev - 1, 0));
+      const prev = Math.max(era - 1, 0);
+      changeEra(prev);
     }
   };
 
-  const code = `// Scroll Temporal (Time-Travel Transition)
+  const code = `// Scroll Temporal (Viaje en el Tiempo 3D en el Eje Z)
 // era: 0 (Pasado), 1 (Presente), 2 (Futuro)
-const eras = [pastRef, presentRef, futureRef];
-const indicator = indicatorRef.current;
+// prevEra: era anterior para calcular la dirección del tiempo (adelante/atrás)
+const isForward = era > prevEra;
 
-const tl = gsap.timeline({ defaults: { duration: ${duration}, ease: "power2.inOut" } });
+const tl = gsap.timeline({ defaults: { duration: ${duration}, ease: "power2.out" } });
 
-// Posicionar indicador temporal
-gsap.to(indicator, {
-  xPercent: ${era} * 100,
-  backgroundColor: \`\${${era} === 0 ? "#10b981" : ${era} === 1 ? "#3b82f6" : "#ec4899"}\`
-});
+// Diapositiva que ENTRA (Incoming)
+const startScale = isForward ? 0.1 : 2.5; // Viene del fondo o del frente
+const startBlur = isForward ? "blur(12px)" : "blur(4px)";
 
-// Transición cruzada tridimensional con blur
-if (${era} === 0) {
-  tl.to(pastCard, { opacity: 1, scale: 1, filter: "blur(0px)" }, 0)
-    .to([presentCard, futureCard], { opacity: 0, scale: 0.9, filter: "blur(8px)" }, 0);
-} else if (${era} === 1) {
-  tl.to(presentCard, { opacity: 1, scale: 1, filter: "blur(0px)" }, 0)
-    .to([pastCard, futureCard], { opacity: 0, scale: 0.9, filter: "blur(8px)" }, 0);
-} else {
-  tl.to(futureCard, { opacity: 1, scale: 1, filter: "blur(0px)" }, 0)
-    .to([pastCard, presentCard], { opacity: 0, scale: 0.9, filter: "blur(8px)" }, 0);
-}`;
+tl.fromTo(incomingCard, 
+  { scale: startScale, opacity: 0, filter: startBlur, zIndex: 20 },
+  { scale: 1, opacity: 1, filter: "blur(0px)" },
+  0
+);
+
+// Diapositiva que SALE (Outgoing)
+const endScale = isForward ? 2.5 : 0.1; // Se acerca a la cámara o se aleja al fondo
+const endBlur = isForward ? "blur(4px)" : "blur(12px)";
+
+tl.to(outgoingCard,
+  { scale: endScale, opacity: 0, filter: endBlur, zIndex: 10 },
+  0
+);`;
 
   return (
     <AnimationCard
       id="temporal-scroll"
       titleEs="Temporal Scroll (Antes/Después)"
       titleEn="Time-Travel State Morphing"
-      prompt="Crea un panel de viaje temporal en GSAP que permita transicionar de forma fluida entre tres estados (Pasado, Presente y Futuro) animando opacidad, desenfoque tridimensional y colores mediante la rueda del ratón o sliders."
+      prompt="Crea un panel de viaje temporal en GSAP que permita transicionar de forma fluida entre tres estados (Pasado, Presente y Futuro) animando la profundidad de la figura (eje Z / scale) hacia delante o hacia atrás según la dirección del scroll."
       onRestart={() => setEra(1)}
       codeString={code}
       technicalInfo={{
-        tweenMethods: "gsap.timeline() coordinando desvanecimientos cruzados, desenfoques y transformaciones de escala tridimensionales.",
+        tweenMethods: "gsap.timeline() coordinando desvanecimientos cruzados, desenfoques y transformaciones en profundidad (scale).",
         varsObject: "opacity, scale, filter: 'blur()', xPercent, backgroundColor, duration.",
-        specialProps: "filter: 'blur(Xpx)' para lograr transiciones cinemáticas fluidas con aceleración GPU.",
-        aliases: "xPercent para desplazar la barra del indicador temporal.",
-        easingConcept: "power2.inOut suaviza tanto el despegue como el frenado de las transiciones.",
-        callbacksConcept: "Intercepción de rueda del ratón (onWheel) para desplazarse a través del tiempo.",
+        specialProps: "isForward calcula si avanzamos o retrocedemos en el tiempo para definir si las figuras vuelan hacia la pantalla (scale > 1) o se alejan al fondo (scale < 1).",
+        aliases: "Scale simulando posición Z tridimensional en el canvas de composición.",
+        easingConcept: "power2.out para un movimiento fluido y cinemático de los elementos en el túnel temporal.",
+        callbacksConcept: "Intercepción de rueda del ratón (onWheel) acoplada a un bloqueador de frecuencia (throttle).",
         pluginsAssociated: "No requiere plugins especiales. Funciona enteramente sobre el core principal de GSAP."
       }}
       sandboxChildren={
@@ -3798,7 +3843,7 @@ if (${era} === 0) {
           className="w-full flex flex-col justify-center items-center py-6 bg-slate-950/20 border border-slate-900 rounded-xl relative overflow-hidden h-64 select-none cursor-ns-resize"
         >
           <div className="absolute top-4 left-4 text-[10px] font-mono text-slate-500 z-10">
-            Rueda del ratón arriba/abajo aquí dentro para viajar en el tiempo
+            Rueda del ratón arriba/abajo para ir hacia DELANTE o ATRÁS en el tiempo
           </div>
 
           <div className="relative w-72 h-40 rounded-xl overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center">
@@ -3863,19 +3908,19 @@ if (${era} === 0) {
               style={{ willChange: "transform, background-color" }}
             />
             <button 
-              onClick={() => setEra(0)}
+              onClick={() => changeEra(0)}
               className={`flex-1 text-[9px] font-mono font-bold z-10 transition-colors uppercase ${era === 0 ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}
             >
               1990
             </button>
             <button 
-              onClick={() => setEra(1)}
+              onClick={() => changeEra(1)}
               className={`flex-1 text-[9px] font-mono font-bold z-10 transition-colors uppercase ${era === 1 ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}
             >
               2010
             </button>
             <button 
-              onClick={() => setEra(2)}
+              onClick={() => changeEra(2)}
               className={`flex-1 text-[9px] font-mono font-bold z-10 transition-colors uppercase ${era === 2 ? 'text-white' : 'text-slate-500 hover:text-slate-300'}`}
             >
               2026
@@ -3885,7 +3930,7 @@ if (${era} === 0) {
       }
       controlsChildren={
         <>
-          <Slider label="Control Temporal (Era)" min={0} max={2} step={1} value={era} onChange={setEra} />
+          <Slider label="Control Temporal (Era)" min={0} max={2} step={1} value={era} onChange={changeEra} />
           <Slider label="Duración Viaje Temporal" min={0.3} max={1.8} step={0.1} value={duration} onChange={setDuration} suffix="s" />
           <div className="flex justify-between mt-2 text-[10px] text-slate-500 font-mono">
             <span>PASADO</span>
